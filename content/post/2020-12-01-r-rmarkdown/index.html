@@ -1,0 +1,504 @@
+---
+title: "Crop model with R and tidyverse (Part I)"
+author: "Benjamin Nowak"
+date: 2021-07-01T21:13:14-05:00
+categories: ["R"]
+tags: ["R", "tidyverse", "modelisation"]
+---
+
+
+
+<p><strong>Goals:</strong></p>
+<ul>
+<li>Introduction to tidyverse<br />
+</li>
+<li>Program a model in R</li>
+<li>Plotting results</li>
+</ul>
+<p>The tidyverse is a collection of extensions designed to work together and based on a common philosophy, making data manipulation and plotting easier.
+In this tutorial, we will use the tidyverse to program the first part of a crop model: <strong>the estimation of the number of plant leaves from temperature data</strong>, based on the work of <a href="https://doi.org/10.5194/gmd-14-1639-2021">Ringeval <em>et al.</em> (2021)</a>. This model will be applied to corn.</p>
+<div id="model-description" class="section level1">
+<h1>1. Model description</h1>
+<p>Before writing the model code, it is important to have defined the model structure.</p>
+<div class="figure">
+<img src="/ModelStructure.png" style="width:80.0%" alt="" />
+<p class="caption"><strong>Figure 1</strong> <em>Model structure (adapted from Ringeval et al., 2021)</em></p>
+</div>
+<p>We will now detail the equations related to the first part of the model: the estimation of the number of leaves</p>
+<p>For any day, the thermal time (<span class="math inline">\(TT\)</span>, in °C) is computed from the daily mean temperature (<span class="math inline">\(tas\)</span>, in °C) by using a reference temperature under which plant growth stops (<span class="math inline">\(T_{0}\)</span>):
+<span class="math display">\[
+\quad\text{(Eq. 1)}\quad
+\begin{cases}
+ TT(day) = tas(day)-T_{0}, &amp; tas(day)&gt;T_{0} \\
+ 0  ,&amp; tas(day)\leq T_{0}
+ \end{cases}       
+\]</span></p>
+<p>Then, the sum of growing degree days (<span class="math inline">\(GDD\)</span>, in °C), may be defined as follows:
+<span class="math display">\[
+\quad\text{(Eq. 2)}\quad GDD(day)=\sum_{i} TT(i)
+\]</span></p>
+<p>The number of leaves per plant (<span class="math inline">\(nleaf\)</span>) is computed from GDD and two parameters: one representing the thermal requirement for the emergence of one leaf (<span class="math inline">\(GDD_{1leaf}\)</span>, in °C), the other the maximum number of leaves per plant (<span class="math inline">\(max_{nleaf}\)</span>):
+<span class="math display">\[
+\quad\text{(Eq. 3)}\quad nleaf = min(max_{nleaf},\frac{GDD(day)}{GDD_{1leaf}})
+\]</span></p>
+<p>Hence, the model consists of one input variable (<span class="math inline">\(tas\)</span>), two internal variables (<span class="math inline">\(TT\)</span> and <span class="math inline">\(GDD\)</span>), three parameters, (<span class="math inline">\(T_{0}\)</span>,<span class="math inline">\(GDD_{1leaf}\)</span> and <span class="math inline">\(max_{nleaf}\)</span>) and one output variable (<span class="math inline">\(nleaf\)</span>).</p>
+</div>
+<div id="writing-the-model" class="section level1">
+<h1>2. Writing the model</h1>
+<div id="loading-packages-and-inputs" class="section level2">
+<h2>2.1. Loading packages and inputs</h2>
+<p>The tidyverse is a collection of R packages designed for data science.</p>
+<div class="figure">
+<img src="/tidyverse.png" alt="" />
+<p class="caption"><strong>Figure 2</strong> <em>Core packages of the tidyverse (Barnier, 2021)</em></p>
+</div>
+<p>In this tutorial, we will mostly used {tidyr} and {dplyr} (for data handling) and {ggplot2} (for plotting).</p>
+<p>The tidyverse may be loaded into R as follows:</p>
+<pre class="r"><code># Install tidyverse (to do once)
+# install.packages(&quot;tidyverse&quot;)
+# Load tidyverse (to repeat at each session)
+library(tidyverse)</code></pre>
+<p>As inputs, we will use one weather dataset from the <a href="https://www.ncdc.noaa.gov/crn/qcdatasets.html">National Centers for Environmental Information</a>. For this tutorial, we will use weather data from Des Moines (USA). You may download the data required for this tutorial <a href="https://github.com/BjnNowak/CropModel">here</a>.
+To be consistent with our model, we will use a daily time step data set. There are many weather variables in these dataset, but we will focus on the average daily temperature, which is the input required for our model.</p>
+<pre class="r"><code># Load datafile 
+input &lt;- read.table(file=&quot;Weather_DesMoines.csv&quot;, header=TRUE, sep=&quot;;&quot;,dec=&quot;.&quot;)
+# Average daily temperature (in °C)
+# (display only first values)
+head(input$T_DAILY_MEAN)</code></pre>
+<pre><code>## [1]  2.1  4.8  0.8 -2.8  2.2  0.3</code></pre>
+</div>
+<div id="data-preparation" class="section level2">
+<h2>2.2. Data preparation</h2>
+<p>For the rest of the tutorial, we will start from the input table and then progressively calculate the internal variables up to the output variable: the number of leaves. To do so, we will use a combination of functions assembled thanks to the pipe operator (<strong>%&gt;%’</strong>), which allows to perform a sequence of actions.</p>
+<p>As a first step, using the select() function from the {dplyr} package, we will select only the column with daily mean temperature and solar radiation, which are the only climate variables used in the model. In this step, we will also rename the variables in the same way as in the model, for more clarity.</p>
+<pre class="r"><code># Creating &#39;data&#39; from &#39;input&#39;: 
+# select only mean T° data
+data&lt;-input%&gt;%                  # Best practice: line break after %&gt;%,
+  dplyr::select(                # then each new line indented by two spaces
+    tas = T_DAILY_MEAN,
+    rsds = SOLARAD_DAILY        # New name = Old name
+  )   
+head(data)</code></pre>
+<pre><code>##    tas rsds
+## 1  2.1 6.81
+## 2  4.8 7.23
+## 3  0.8 1.49
+## 4 -2.8 3.17
+## 5  2.2 7.75
+## 6  0.3 5.87</code></pre>
+<p>Then, to add new columns, we will mainly use the mutate() function, also from {dplyr}.</p>
+<p>We will now use mutate() to add day number to our input table. As the table is ordered chronologically from January 1st to December 31st, we are going to create this new column thanks to the number of the rows that can be obtained with the row_number() function.</p>
+<pre class="r"><code>data&lt;-input%&gt;%
+  dplyr::select(
+    tas = T_DAILY_MEAN,
+    rsds = SOLARAD_DAILY  
+  )%&gt;% 
+  dplyr::mutate(                
+    day_number = row_number()     # Add a new column with day number
+  )
+
+head(data)</code></pre>
+<pre><code>##    tas rsds day_number
+## 1  2.1 6.81          1
+## 2  4.8 7.23          2
+## 3  0.8 1.49          3
+## 4 -2.8 3.17          4
+## 5  2.2 7.75          5
+## 6  0.3 5.87          6</code></pre>
+<p>In this tutorial, we are interested in corn development. In the northern hemisphere, corn is rarely sown before April 1st. Last step of our data preparation will be to keep only the dates after April 1st (day number = 92). To do so, we will use the filter() function.</p>
+<pre class="r"><code>data&lt;-input%&gt;%
+  dplyr::select(
+    tas = T_DAILY_MEAN,
+    rsds = SOLARAD_DAILY  
+  )%&gt;% 
+  dplyr::mutate(                
+    day_number = row_number()     
+  )%&gt;%
+  dplyr::filter(
+    day_number&gt;=92                # Keep only data after April 1st (included)
+  )
+
+head(data)</code></pre>
+<pre><code>##    tas  rsds day_number
+## 1  9.7 19.37         92
+## 2 13.6 10.18         93
+## 3  4.3  1.72         94
+## 4  3.1 18.13         95
+## 5  7.7 22.15         96
+## 6 13.2  4.78         97</code></pre>
+<p>Now we can already make a first representation of the data with {ggplot2}: the evolution of the temperatures during the growing season. The basic principle of {ggplot2} is that we will first specify the data we want to use within the ggplot() function, then specify the layers we want to add with the <strong>+</strong> operator.</p>
+<pre class="r"><code>ggplot2::ggplot(
+    data=data,                           # Name of the data frame to be used 
+    aes(x=day_number, y=tas)             # Specify x and y axis
+  )+
+  geom_point()+                          # Add points to the plot
+  labs(                                  # Customize labels
+    title = &quot;Temperature evolution&quot;,
+    x = &quot;Day number&quot;,
+    y = &quot;Mean T° (°C)&quot;
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>Like geom_point(), there are many geom layers that can be added to ggplot(). before we start programming our model, we will just see how we can add a smoothing layer with geom_smooth() (note that there are many ways to customize graphs with {ggplot2}, but that we will not go into details in this tutorial).</p>
+<pre class="r"><code>ggplot2::ggplot(
+    data=data,                           
+    aes(x=day_number, y=tas)    
+  )+
+  geom_point(color=&quot;darkslategray3&quot;)+      # Change color of geom_point()
+  geom_smooth(color=&quot;darkslategray&quot;)+      # Add smoothing layer
+  labs(                                  
+    title = &quot;Temperature evolution&quot;,
+    x = &quot;Day number&quot;,
+    y = &quot;Mean T° (°C)&quot;
+  )</code></pre>
+<pre><code>## `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+</div>
+<div id="writing-model-equations" class="section level2">
+<h2>2.3. Writing model equations</h2>
+<p>To simplify the following explanations, we will write the model from the <em>data</em> table created above, but it should be noted that it would be possible to pursue the chain of actions started from the <em>input</em> table.</p>
+<p>The mutate() function will again be used to calculate <span class="math inline">\((Eq. 1)\)</span> and add thermal time (<span class="math inline">\(TT\)</span>) to <em>data</em> table. However, this case is a little bit different because there is a condition (daily temperature above or below <span class="math inline">\(T_{0}\)</span>). This condition may be expressed with the case_when() function.</p>
+<pre class="r"><code>T0&lt;-6 # Set T0 for corn: 6°C
+
+model&lt;-data%&gt;%
+  dplyr::mutate(
+    TT=dplyr::case_when(
+      tas&lt;T0~0,                 # Condition 1 ~ Column value
+      tas&gt;=T0~tas-T0            # Condition 2 ~ Volumn value
+    )
+  )
+# Print first rows
+head(model)</code></pre>
+<pre><code>##    tas  rsds day_number  TT
+## 1  9.7 19.37         92 3.7
+## 2 13.6 10.18         93 7.6
+## 3  4.3  1.72         94 0.0
+## 4  3.1 18.13         95 0.0
+## 5  7.7 22.15         96 1.7
+## 6 13.2  4.78         97 7.2</code></pre>
+<p>We may then calculate growing degree days (<span class="math inline">\(GDD\)</span>) from <span class="math inline">\((Eq. 2)\)</span> using the cumsum() function available in base R.</p>
+<pre class="r"><code>model&lt;-data%&gt;%
+  dplyr::mutate(
+    TT=dplyr::case_when(
+      tas&lt;T0~0,
+      tas&gt;=T0~tas-T0
+    )
+  )%&gt;%  
+  mutate(
+    GDD = cumsum(TT)                   # Cumulative sum of thermal time
+  )
+# Print last rows
+tail(model)</code></pre>
+<pre><code>##      tas rsds day_number TT    GDD
+## 270 -3.1 8.09        361  0 2579.9
+## 271 -2.5 1.98        362  0 2579.9
+## 272 -4.8 7.51        363  0 2579.9
+## 273 -4.8 0.29        364  0 2579.9
+## 274 -2.7 6.45        365  0 2579.9
+## 275 -7.2 5.80        366  0 2579.9</code></pre>
+<p>Finally, to estimate the number of leaves, we will split <span class="math inline">\((Eq. 1)\)</span> into two parts: estimation of the potential number of leaves, then comparison with the maximum possible number of leaves per plant.</p>
+<pre class="r"><code># Set parameters: 
+# Sum of T° for the emergence of 1 leaf
+GDD_1leaf&lt;-50
+# Maximum number of leaves per plant
+max_nleaf&lt;-20
+
+model&lt;-data%&gt;%
+  dplyr::mutate(
+    TT=dplyr::case_when(
+      tas&lt;T0~0,
+      tas&gt;=T0~tas-T0
+    )
+  )%&gt;%  
+  mutate(
+    GDD = cumsum(TT)
+  )%&gt;%
+  # Potential number of leaves (no max values)
+  mutate(
+    pot_nleaf = GDD/GDD_1leaf
+  )%&gt;%
+  # Estimated number of leaves (including max)
+  mutate(
+    nleaf = case_when(
+      pot_nleaf&lt;=max_nleaf~round(pot_nleaf),
+      pot_nleaf&gt;max_nleaf~max_nleaf
+    )
+  )
+
+tail(model)</code></pre>
+<pre><code>##      tas rsds day_number TT    GDD pot_nleaf nleaf
+## 270 -3.1 8.09        361  0 2579.9    51.598    20
+## 271 -2.5 1.98        362  0 2579.9    51.598    20
+## 272 -4.8 7.51        363  0 2579.9    51.598    20
+## 273 -4.8 0.29        364  0 2579.9    51.598    20
+## 274 -2.7 6.45        365  0 2579.9    51.598    20
+## 275 -7.2 5.80        366  0 2579.9    51.598    20</code></pre>
+<p>Results may also be represented with {ggplot2}.</p>
+<pre class="r"><code>ggplot2::ggplot(
+    data=model,                           
+    aes(x=day_number, y=nleaf)    
+  )+
+  geom_point(color=&quot;forestgreen&quot;)+
+  labs(                                  
+    title = &quot;Modelisation of the number of leaves&quot;,
+    x = &quot;Day number&quot;,
+    y = &quot;Number of leaves&quot;
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+</div>
+</div>
+<div id="using-the-model" class="section level1">
+<h1>3. Using the model</h1>
+<div id="creating-a-function" class="section level2">
+<h2>3.1. Creating a function</h2>
+<p>In order to facilitate the realization of multiple simulations, it is appropriate to transform the code defined above into a function.
+The creation of a function follows the structure below:</p>
+<pre class="r"><code>function_name &lt;- function(arguments) {
+    instructions
+    return(results)
+}</code></pre>
+<p>For example, we will create a function with three agruments that will allow us to evaluate the effect of the thermal requirement for the emergence of one leaf (<span class="math inline">\(GDD_{1leaf}\)</span>, also called phyllochron) on the evolution of the number of leaves.</p>
+<pre class="r"><code>model_fun &lt;- function(
+  name,           # Scenario name 
+  data,           # Climatic variables to be used as inputs
+  GDD_1leaf       # Thermal requirement for the emergence of one leaf
+  ){      
+  
+  # Set parameters (without GDD_1leaf)
+  max_nleaf&lt;-20
+  T0&lt;-6 
+  # Estimate nleaf
+  model&lt;-data%&gt;%
+    dplyr::mutate(
+      TT=dplyr::case_when(
+        tas&lt;T0~0,
+        tas&gt;=T0~tas-T0
+    ))%&gt;%  
+    mutate(
+      GDD = cumsum(TT)
+    )%&gt;%
+    mutate(
+      pot_nleaf = GDD/GDD_1leaf
+    )%&gt;%
+    mutate(
+      nleaf = case_when(
+        pot_nleaf&lt;=max_nleaf~round(pot_nleaf),
+        pot_nleaf&gt;max_nleaf~max_nleaf
+      )
+    )%&gt;%
+    add_column(                                # To add scenario name to data
+      Scenario = name                          # (set &#39;name&#39; in argument)
+    )
+  return(model)
+}
+
+# Test the function for baseline scenario
+baseline &lt;- model_fun(name=&quot;Baseline&quot;,data=data,GDD_1leaf = 40)
+tail(baseline)</code></pre>
+<pre><code>##      tas rsds day_number TT    GDD pot_nleaf nleaf Scenario
+## 270 -3.1 8.09        361  0 2579.9   64.4975    20 Baseline
+## 271 -2.5 1.98        362  0 2579.9   64.4975    20 Baseline
+## 272 -4.8 7.51        363  0 2579.9   64.4975    20 Baseline
+## 273 -4.8 0.29        364  0 2579.9   64.4975    20 Baseline
+## 274 -2.7 6.45        365  0 2579.9   64.4975    20 Baseline
+## 275 -7.2 5.80        366  0 2579.9   64.4975    20 Baseline</code></pre>
+<p>We can now use this function to evaluate the effect of <span class="math inline">\(GDD_{1leaf}\)</span>, assuming, for example, that we can reduce this parameter through plant breeding.</p>
+<pre class="r"><code>baseline &lt;- model_fun(
+  name=&quot;Baseline&quot;, data=data, GDD_1leaf = 50
+)
+breed &lt;- model_fun(
+  name=&quot;Improved cultivar&quot;,data=data, GDD_1leaf = 40
+)
+
+comp&lt;-rbind.data.frame(                         # Merging results 
+  baseline,                                     # before plotting
+  breed
+)
+
+ggplot(
+    data=comp, 
+    aes(x=day_number,y=nleaf,color=Scenario)    # Add color in aes()
+  )+
+  geom_point()+
+    labs(                                  
+    title = &quot;Comparison between two cultivars&quot;,
+    x = &quot;Day number&quot;,
+    y = &quot;Number of leaves&quot;
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p>Following this example, the function can be used to compare many scenarios.</p>
+<blockquote>
+<p><strong>Application</strong> Use the model to compare the number of leaves between two cities: DesMoines (Iowa) and Sandstone (Minnesota)</p>
+</blockquote>
+<pre class="r"><code># Load second datafile 
+input_sandstone &lt;- read.table(file=&quot;Weather_Sandstone.csv&quot;, header=TRUE, sep=&quot;;&quot;,dec=&quot;.&quot;)
+# Cleaning data
+data_sandstone&lt;-input_sandstone%&gt;%
+  dplyr::select(
+    tas = T_DAILY_MEAN,
+    rsds = SOLARAD_DAILY  
+  )%&gt;% 
+  dplyr::mutate(                
+    day_number = row_number()     
+  )%&gt;%
+  dplyr::filter(
+    day_number&gt;=92                
+  )
+# Apply function for both datasets
+baseline &lt;- model_fun(
+  name=&quot;DesMoines&quot;, data=data, GDD_1leaf = 50
+)
+sandstone &lt;- model_fun(
+  name=&quot;Sandstone&quot;,data=data_sandstone, GDD_1leaf = 50
+)
+# Merging results before plotting
+comp&lt;-rbind.data.frame(                         
+  baseline,                                     
+  sandstone
+)
+# Plotting
+ggplot(
+    data=comp, 
+    aes(x=day_number,y=nleaf,color=Scenario)    
+  )+
+  geom_point()+
+    labs(                                  
+      title = &quot;Comparison between two cities&quot;,
+      x = &quot;Day number&quot;,
+      y = &quot;Number of leaves&quot;
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+</div>
+<div id="going-further" class="section level2">
+<h2>3.2. Going further</h2>
+<p>Following this tutorial, you may now complete the function based on the equations given by Ringeval <em>et al.</em> (2021) to obtain a model for estimating yield from weather data (a suggestion is given in the Appendix).
+In the next tutorial, we will see how to analyze the performance of this model (sensitivity analysis, uncertainty analysis, root mean square error…).</p>
+</div>
+</div>
+<div id="acknowledgement" class="section level1">
+<h1>Acknowledgement</h1>
+<p>Many thanks to Bruno Ringeval for taking the time to answer my questions.</p>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<ul>
+<li>Barnier, J. (<strong>2021</strong>). Introduction à R et au tidyverse. <a href="https://juba.github.io/tidyverse/index.html" class="uri">https://juba.github.io/tidyverse/index.html</a></li>
+<li>Ringeval, B. <em>et al.</em> (<strong>2021</strong>). Potential yield simulated by global gridded crop models: using a process-based emulator to explain their differences. Geosci. Model Dev., 14, 1639–1656. <a href="https://doi.org/10.5194/gmd-14-1639-2021" class="uri">https://doi.org/10.5194/gmd-14-1639-2021</a></li>
+</ul>
+<div style="page-break-after: always;"></div>
+</div>
+<div id="appendix" class="section level1">
+<h1>Appendix</h1>
+<p>You will find below a suggestion to code the whole model and estimate potential maximum maize yield from temperature and radiation.</p>
+<pre class="r"><code># Outside the function:
+# Rquired parameters to compute C
+# Light extinction coefficient
+K &lt;- 0.56
+# Individual leaf area (m-2)
+S &lt;- 0.05
+# Plant density (m-2)
+d &lt;- 90000/10000
+
+# Model function
+model_fun &lt;- function(
+  name,           # Scenario name 
+  data,           # Climatic variables to be used as inputs
+  GDD_1leaf,      # Thermal requirement for the emergence of one leaf
+  C,              # C=f(K,S,d)
+  nthresh         # Number of leaves before grain filling
+  ){      
+  # Set parameters (without GDD_1leaf)
+  max_nleaf&lt;-20
+  T0&lt;-6 
+  f&lt;-0.5      # Active fraction of incoming radiation
+  frac&lt;-0.7   # Fraction of Net Primary Productivity dedicated to grain
+  RUE&lt;-2.5    # Radiation use efficiency (gDM.MJ-1)
+  # Estimate yield
+  model&lt;-data%&gt;%
+    dplyr::mutate(
+      TT=dplyr::case_when(
+        tas&lt;T0~0,
+        tas&gt;=T0~tas-T0
+    ))%&gt;%  
+    mutate(
+      GDD = cumsum(TT)
+    )%&gt;%
+    mutate(
+      pot_nleaf = GDD/GDD_1leaf
+    )%&gt;%
+    mutate(
+      nleaf = case_when(
+        pot_nleaf&lt;=max_nleaf~round(pot_nleaf),
+        pot_nleaf&gt;max_nleaf~max_nleaf
+      )
+    )%&gt;%
+     # Incoming photosynthetic active radiation (MJ.m-2.day-1)
+    mutate(
+      PAR_inc = f*rsds
+    )%&gt;%
+    # Absorbed PAR by the canopy (MJ.m-2.day-1)
+    mutate(
+      APAR = PAR_inc*(1-exp(-C*nleaf))
+    )%&gt;%
+    # Net primary productivity dedicated to the aboveground biomass 
+    mutate(
+      NPP = RUE*APAR
+    )%&gt;%
+    # Sum of aboveground biomass
+    mutate(
+      biom = cumsum(NPP)
+    )%&gt;%
+    # Net primary productivity dedicated to the variable grain
+    mutate(
+      NPPgrain = case_when(
+        nleaf&lt;nthresh ~ 0,
+        nleaf&gt;=nthresh ~ frac*NPP
+      )
+    )%&gt;%
+    # Total grain production (g.m-2)
+    mutate(
+      grain = cumsum(NPPgrain)
+    )%&gt;%
+    # Total grain production (t.ha-1)
+    mutate(
+      grain_t = grain/100
+    )%&gt;%
+    add_column(                                # To add scenario name to data
+      Scenario = name                          # (set &#39;name&#39; in argument)
+    )
+  return(model)
+}
+
+
+# Apply function for both datasets
+baseline &lt;- model_fun(
+  name=&quot;DesMoines&quot;, 
+  data=data, 
+  GDD_1leaf = 50,
+  C=K*S*d,
+  nthresh = 16
+)
+sandstone &lt;- model_fun(
+  name=&quot;Sandstone&quot;,
+  data=data_sandstone, 
+  GDD_1leaf = 50,
+  C=K*S*d,
+  nthresh = 16
+)
+# Merging results before plotting
+comp&lt;-rbind.data.frame(                         
+  baseline,                                     
+  sandstone
+)
+# Plotting
+ggplot(
+    data=comp, 
+    aes(x=day_number,y=grain_t,color=Scenario)    
+  )+
+  geom_point()+
+    labs(                                  
+      title = &quot;Comparison between two cities&quot;,
+      x = &quot;Day number&quot;,
+      y = &quot;Potential max yield (t.ha-1)&quot;
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
+</div>
