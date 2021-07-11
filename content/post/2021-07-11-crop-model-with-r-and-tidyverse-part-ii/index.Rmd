@@ -1,0 +1,22 @@
+---
+title: Crop model with R and tidyverse (Part II)
+author: Benjamin Nowak
+date: '2021-07-11'
+slug: crop-model-with-r-and-tidyverse-part-ii
+categories: ["R"]
+tags:
+  - modelisation
+  - R
+  - tidyverse
+---
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# Set Working directory for Notebook
+knitr::opts_knit$set(root.dir='/Users/bnowak/Documents/231220/WD/AnalyseSyst/')
+```
+
+**Goals:**   
+
+  * Perform sensitivity/uncertainty analysis 
+  * Calculate Root Mean Square Error 
+  * Optimize the model
