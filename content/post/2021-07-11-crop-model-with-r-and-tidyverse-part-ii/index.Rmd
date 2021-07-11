@@ -1,5 +1,5 @@
 ---
-title: Crop model with R and tidyverse (Part II)
+title: "[R] Crop model with tidyverse (Part II)"
 author: Benjamin Nowak
 date: '2021-07-11'
 slug: crop-model-with-r-and-tidyverse-part-ii
