@@ -1,5 +1,5 @@
 ---
-title: "Crop model with R and tidyverse (Part I)"
+title: "[R] Crop model with tidyverse (Part I)"
 author: "Benjamin Nowak"
 date: 2021-07-01T21:13:14-05:00
 categories: ["R"]
@@ -24,6 +24,10 @@ In this tutorial, we will use the tidyverse to program the first part of a crop 
 <img src="/ModelStructure.png" style="width:80.0%" alt="" />
 <p class="caption"><strong>Figure 1</strong> <em>Model structure (adapted from Ringeval et al., 2021)</em></p>
 </div>
+<p>Briefly, this estimation of corn yield is done in three steps:<br />
+<strong>1.</strong> Estimation of number of leaves (based on daily temperature)<br />
+<strong>2.</strong> Estimation of the amount of photosynthetically active light intercepted by the plants<br />
+<strong>3.</strong> Conversion of this amount of radiation into biomass (first plant then grain)</p>
 <p>We will now detail the equations related to the first part of the model: the estimation of the number of leaves</p>
 <p>For any day, the thermal time (<span class="math inline">\(TT\)</span>, in °C) is computed from the daily mean temperature (<span class="math inline">\(tas\)</span>, in °C) by using a reference temperature under which plant growth stops (<span class="math inline">\(T_{0}\)</span>):
 <span class="math display">\[

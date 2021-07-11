@@ -27,6 +27,11 @@ Before writing the model code, it is important to have defined the model structu
 
 ![**Figure 1** *Model structure (adapted from Ringeval et al., 2021)*](/ModelStructure.png){width=80%} 
 
+Briefly, this estimation of corn yield is done in three steps:     
+  **1.** Estimation of number of leaves (based on daily temperature)    
+  **2.** Estimation of the amount of photosynthetically active light intercepted by the plants   
+  **3.** Conversion of this amount of radiation into biomass (first plant then grain)
+
 We will now detail the equations related to the first part of the model: the estimation of the number of leaves
 
 For any day, the thermal time ($TT$, in °C) is computed from the daily mean temperature ($tas$, in °C) by using a reference temperature under which plant growth stops ($T_{0}$):
