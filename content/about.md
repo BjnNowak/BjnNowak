@@ -5,16 +5,6 @@ title: About me
 
 My name is Benjamin Nowak and I am an agronomist working on remote sensing, precision farming and soil sciences. This website is for sharing my projects and courses with engineering students.
 
-# Short resume
-
-* **Since 2018** Lecturer in agronomy, [VetAgro Sup](http://www.vetagro-sup.fr/about-vetagro-sup/)
-
-* **From 2014 to 2018** Innovation manager, [Limagrain](https://www.limagrain.com/en)
-
-* **2013** [PhD degree](https://tel.archives-ouvertes.fr/tel-00982802/), Université de Bordeaux
-
-* **2010** Engineering degree, [AgroParisTech](http://www2.agroparistech.fr/Welcome-to-AgroParisTech.html)
-
 # Peer-reviewed publications
 
 * [Estimation of winter soil cover by vegetation before spring-sown crops for mainland France using multispectral satellite imagery](https://iopscience.iop.org/article/10.1088/1748-9326/ac007c/meta) (2021). <u>B Nowak</u>, G Marliac, A Michaud. *Environmental Research Letters*.

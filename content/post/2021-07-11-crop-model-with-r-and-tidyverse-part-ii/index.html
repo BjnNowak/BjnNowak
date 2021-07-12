@@ -20,6 +20,41 @@ tags:
 </ul>
 <p>In the first part, we created a model that estimates the maximum potential yield of corn based on weather data (temperature and solar radiation). Briefly, this estimation is done in three steps:<br />
 <strong>1.</strong> Estimation of number of leaves (based on daily temperature)<br />
-<strong>2.</strong> Estimation of the amount of photosynthetically active light intercepted by the plants<br />
+<strong>2.</strong> Estimation of the amount of photosynthetically active radiation intercepted by the plants<br />
 <strong>3.</strong> Conversion of this amount of radiation into biomass (first plant then grain)</p>
 <p>We will now investigate the influence of the different parameters on the model’s results.</p>
+<p>we will use the same data as for the first part, as well as the function created to run the model. We won’t go into detail about the creation of this function here, but you must have it loaded in your script to use it (if necessary, you may find the code of this function in the Appendix of <a href="https://bjnnowak.netlify.app/2021/07/01/r-crop-model-with-tidyverse-part-i/">the first part</a>).</p>
+<pre class="r"><code># Load tidyverse 
+library(tidyverse)
+# Load data 
+input &lt;- read.table(file=&quot;Weather_DesMoines.csv&quot;, header=TRUE, sep=&quot;;&quot;,dec=&quot;.&quot;)
+# Clean data
+data&lt;-input%&gt;%
+  dplyr::select(
+    tas = T_DAILY_MEAN,
+    rsds = SOLARAD_DAILY  
+  )%&gt;% 
+  dplyr::mutate(                
+    day_number = row_number()     
+  )%&gt;%
+  dplyr::filter(
+    day_number&gt;=92                # Keep only data after April 1st (included)
+  )
+# Apply function (need to be loaded first)
+baseline &lt;- model_fun(
+  name=&quot;DesMoines&quot;, 
+  data=data, 
+  GDD_1leaf = 50,
+  C=K*S*d,
+  RUE=2.5,
+  nthresh = 16
+)
+# Plotting results
+ggplot(data=baseline,aes(x=day_number,y=grain_t))+
+  geom_point()+
+  labs(  
+    title = &quot;Comparison between two cities&quot;,
+    x = &quot;Day number&quot;,
+    y = &quot;Potential max yield (t.ha-1)&quot;
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>

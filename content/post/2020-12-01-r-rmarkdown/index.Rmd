@@ -29,7 +29,7 @@ Before writing the model code, it is important to have defined the model structu
 
 Briefly, this estimation of corn yield is done in three steps:     
   **1.** Estimation of number of leaves (based on daily temperature)    
-  **2.** Estimation of the amount of photosynthetically active light intercepted by the plants   
+  **2.** Estimation of the amount of photosynthetically active radiation intercepted by the plants   
   **3.** Conversion of this amount of radiation into biomass (first plant then grain)
 
 We will now detail the equations related to the first part of the model: the estimation of the number of leaves
@@ -76,7 +76,7 @@ As inputs, we will use one weather dataset from the [National Centers for Enviro
 To be consistent with our model, we will use a daily time step data set. There are many weather variables in these dataset, but we will focus on the average daily temperature, which is the input required for our model.    
 
 ```{r}
-# Load datafile 
+# Load data 
 input <- read.table(file="Weather_DesMoines.csv", header=TRUE, sep=";",dec=".")
 # Average daily temperature (in °C)
 # (display only first values)
@@ -401,7 +401,7 @@ Many thanks to Bruno Ringeval for taking the time to answer my questions.
 
 # Appendix
 
-You will find below a suggestion to code the whole model and estimate potential maximum maize yield from temperature and radiation.
+You will find below a suggestion to code the whole model and estimate potential maximum corn yield from temperature and solar radiation.
 ```{r, message=FALSE, warning=FALSE}
 
 # Outside the function:
@@ -419,6 +419,7 @@ model_fun <- function(
   data,           # Climatic variables to be used as inputs
   GDD_1leaf,      # Thermal requirement for the emergence of one leaf
   C,              # C=f(K,S,d)
+  RUE,            # Radiation use efficiency (gDM.MJ-1)
   nthresh         # Number of leaves before grain filling
   ){      
   # Set parameters (without GDD_1leaf)
@@ -426,7 +427,7 @@ model_fun <- function(
   T0<-6 
   f<-0.5      # Active fraction of incoming radiation
   frac<-0.7   # Fraction of Net Primary Productivity dedicated to grain
-  RUE<-2.5    # Radiation use efficiency (gDM.MJ-1)
+  
   # Estimate yield
   model<-data%>%
     dplyr::mutate(
@@ -490,6 +491,7 @@ baseline <- model_fun(
   data=data, 
   GDD_1leaf = 50,
   C=K*S*d,
+  RUE=2.5,
   nthresh = 16
 )
 sandstone <- model_fun(
@@ -497,6 +499,7 @@ sandstone <- model_fun(
   data=data_sandstone, 
   GDD_1leaf = 50,
   C=K*S*d,
+  RUE=2.5,
   nthresh = 16
 )
 # Merging results before plotting
@@ -510,9 +513,9 @@ ggplot(
     aes(x=day_number,y=grain_t,color=Scenario)    
   )+
   geom_point()+
-    labs(                                  
-      title = "Comparison between two cities",
-      x = "Day number",
-      y = "Potential max yield (t.ha-1)"
+  labs(                                  
+    title = "Comparison between two cities",
+    x = "Day number",
+    y = "Potential max yield (t.ha-1)"
   )
 ```

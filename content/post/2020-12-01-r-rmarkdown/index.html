@@ -26,7 +26,7 @@ In this tutorial, we will use the tidyverse to program the first part of a crop 
 </div>
 <p>Briefly, this estimation of corn yield is done in three steps:<br />
 <strong>1.</strong> Estimation of number of leaves (based on daily temperature)<br />
-<strong>2.</strong> Estimation of the amount of photosynthetically active light intercepted by the plants<br />
+<strong>2.</strong> Estimation of the amount of photosynthetically active radiation intercepted by the plants<br />
 <strong>3.</strong> Conversion of this amount of radiation into biomass (first plant then grain)</p>
 <p>We will now detail the equations related to the first part of the model: the estimation of the number of leaves</p>
 <p>For any day, the thermal time (<span class="math inline">\(TT\)</span>, in °C) is computed from the daily mean temperature (<span class="math inline">\(tas\)</span>, in °C) by using a reference temperature under which plant growth stops (<span class="math inline">\(T_{0}\)</span>):
@@ -392,7 +392,7 @@ In the next tutorial, we will see how to analyze the performance of this model (
 </div>
 <div id="appendix" class="section level1">
 <h1>Appendix</h1>
-<p>You will find below a suggestion to code the whole model and estimate potential maximum maize yield from temperature and radiation.</p>
+<p>You will find below a suggestion to code the whole model and estimate potential maximum corn yield from temperature and solar radiation.</p>
 <pre class="r"><code># Outside the function:
 # Rquired parameters to compute C
 # Light extinction coefficient
@@ -408,6 +408,7 @@ model_fun &lt;- function(
   data,           # Climatic variables to be used as inputs
   GDD_1leaf,      # Thermal requirement for the emergence of one leaf
   C,              # C=f(K,S,d)
+  RUE,            # Radiation use efficiency (gDM.MJ-1)
   nthresh         # Number of leaves before grain filling
   ){      
   # Set parameters (without GDD_1leaf)
@@ -415,7 +416,7 @@ model_fun &lt;- function(
   T0&lt;-6 
   f&lt;-0.5      # Active fraction of incoming radiation
   frac&lt;-0.7   # Fraction of Net Primary Productivity dedicated to grain
-  RUE&lt;-2.5    # Radiation use efficiency (gDM.MJ-1)
+  
   # Estimate yield
   model&lt;-data%&gt;%
     dplyr::mutate(
@@ -479,6 +480,7 @@ baseline &lt;- model_fun(
   data=data, 
   GDD_1leaf = 50,
   C=K*S*d,
+  RUE=2.5,
   nthresh = 16
 )
 sandstone &lt;- model_fun(
@@ -486,6 +488,7 @@ sandstone &lt;- model_fun(
   data=data_sandstone, 
   GDD_1leaf = 50,
   C=K*S*d,
+  RUE=2.5,
   nthresh = 16
 )
 # Merging results before plotting
