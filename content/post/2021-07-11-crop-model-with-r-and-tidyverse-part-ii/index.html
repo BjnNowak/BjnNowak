@@ -14,39 +14,26 @@ tags:
 
 <p><strong>Goals:</strong></p>
 <ul>
-<li>Perform sensitivity/uncertainty analysis</li>
-<li>Calculate Root Mean Square Error</li>
-<li>Optimize the model</li>
+<li>Perform sensitivity analysis</li>
+<li>Perform uncertainty analysis</li>
+<li>Plot results</li>
 </ul>
 <p>In the first part, we created a model that estimates the maximum potential yield of corn based on weather data (temperature and solar radiation). Briefly, this estimation is done in three steps:<br />
 <strong>1.</strong> Estimation of number of leaves (based on daily temperature)<br />
 <strong>2.</strong> Estimation of the amount of photosynthetically active radiation intercepted by the plants<br />
 <strong>3.</strong> Conversion of this amount of radiation into biomass (first plant then grain)</p>
 <p>We will now investigate the influence of the different parameters on the model’s results.</p>
-<p>we will use the same data as for the first part, as well as the function created to run the model. We won’t go into detail about the creation of this function here, but you must have it loaded in your script to use it (if necessary, you may find the code of this function in the Appendix of <a href="https://bjnnowak.netlify.app/2021/07/01/r-crop-model-with-tidyverse-part-i/">the first part</a>).</p>
+<p>we will use the same data as for the first part, as well as the function created to run the model. We won’t go into detail about the data or the creation of this function here, but you must have it loaded in your script to use it (if necessary, you may find the code of this function in the Appendix of <a href="https://bjnnowak.netlify.app/2021/07/01/r-crop-model-with-tidyverse-part-i/">the first part</a>).</p>
 <pre class="r"><code># Load tidyverse 
 library(tidyverse)
-# Load data 
-input &lt;- read.table(file=&quot;Weather_DesMoines.csv&quot;, header=TRUE, sep=&quot;;&quot;,dec=&quot;.&quot;)
-# Clean data
-data&lt;-input%&gt;%
-  dplyr::select(
-    tas = T_DAILY_MEAN,
-    rsds = SOLARAD_DAILY  
-  )%&gt;% 
-  dplyr::mutate(                
-    day_number = row_number()     
-  )%&gt;%
-  dplyr::filter(
-    day_number&gt;=92                # Keep only data after April 1st (included)
-  )
-# Apply function (need to be loaded first)
+# Load previous data and function (not shown here)
+# Apply function once loaded
 baseline &lt;- model_fun(
   name=&quot;DesMoines&quot;, 
   data=data, 
   GDD_1leaf = 50,
-  C=K*S*d,
-  RUE=2.5,
+  C=0.12,
+  RUE=2,
   nthresh = 16
 )
 # Plotting results
@@ -57,4 +44,117 @@ ggplot(data=baseline,aes(x=day_number,y=grain_t))+
     x = &quot;Day number&quot;,
     y = &quot;Potential max yield (t.ha-1)&quot;
   )</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<div id="sensitivity-analysis" class="section level1">
+<h1>1. Sensitivity analysis</h1>
+<p>A sensitivity analysis is used to determine the effect of uncertainty about the variables or parameters of a model on the final result. Here, we will evaluate the effect of two parameters: <span class="math inline">\(C\)</span>, which reflects the crops’s capacity to intercept light and the Radiation Use Efficieny (<span class="math inline">\(RUE\)</span>, in gDM.MJ-1), which estimates the conversion of the intercepted radiation into biomass.</p>
+<p>The parameter C can be decomposed in different parameters according to the following equation:</p>
+<p><span class="math display">\[
+\quad\text{(Eq. 1)}\quad C = k*S_{leaf}*d_{plant}
+\]</span>
+where <span class="math inline">\(k\)</span> is the light extinction coefficient (reflecting light penetration in crop’s foliage), <span class="math inline">\(S_{leaf}\)</span> is the individual leaf area, and <span class="math inline">\(d_{plant}\)</span> is the plant density. These three parameters will be evaluated simultaneously by the sensitivity analysis perfomed on <span class="math inline">\(C\)</span>.</p>
+<p>An important part of sensitivity analysis is to determine the boundaries of each parameter, which can be done through a literature review. For this tutorial, we will take the same boundaries as Ringeval <em>et al.</em> (2021): [0.06; 0.18] for <span class="math inline">\(C\)</span> and [1; 3] for <span class="math inline">\(RUE\)</span>.</p>
+<p>We will now create a data frame that will store the different values that these coefficients can take:</p>
+<pre class="r"><code>input&lt;-data.frame(
+    C_draw=seq(0.06,0.18,0.03),  # C varies from 0.06 to 0.18 with a step of 0.03
+    RUE_draw=seq(1,3,0.5),       # RUE varies from 1 to 3 with a step of 0.5
+    relative_draw=seq(0,1,0.25)  # To compare both variables on the same scale
+  )
+
+input</code></pre>
+<pre><code>##   C_draw RUE_draw relative_draw
+## 1   0.06      1.0          0.00
+## 2   0.09      1.5          0.25
+## 3   0.12      2.0          0.50
+## 4   0.15      2.5          0.75
+## 5   0.18      3.0          1.00</code></pre>
+<p>Before applying our model to each of these cases, we need to prepare the data.
+To simplify the sensitivity analysis we will limit ourselves to the comparison of the final yield. To do this, we will use the tail() function to extract only the last value.</p>
+<pre class="r"><code>output&lt;-model_fun(
+  name=&quot;DesMoines&quot;, 
+  data=data, 
+  GDD_1leaf = 50,
+  C=0.12,
+  RUE=2,
+  nthresh = 16
+  )%&gt;%
+  select(grain_t)%&gt;%        # Select only yield values
+  tail(1)                   # Select only the last row 
+output</code></pre>
+<pre><code>##      grain_t
+## 275 17.20865</code></pre>
+<p>We will now create a new function that performs this extraction by taking as arguments our two variables of interest <span class="math inline">\(C\)</span> and <span class="math inline">\(RUE\)</span>:</p>
+<pre class="r"><code># Function creation
+sensitivity_fun&lt;-function(C_vec,RUE_vec){
+  output&lt;-model_fun(
+    name=&quot;DesMoines&quot;, 
+    data=data, 
+    GDD_1leaf = 50,
+    C=C_vec,
+    RUE=RUE_vec,
+    nthresh = 16
+    )%&gt;%
+    select(grain_t)%&gt;%        # Select only yield values
+    tail(1)
+  return(as.numeric(output))
+}
+# &quot;Manual&quot; analysis with different values:
+sensitivity_fun(C_vec=0.12,RUE_vec=3)</code></pre>
+<pre><code>## [1] 25.81298</code></pre>
+<p>We are now going to apply this function to the input data frame that we have prepared before. To do so, we will use the mapply() function, that allows to iterate the same function over a vector without the need of using the for loop, that is known to be slow in R. Compared to sapply(), which can perform the same task, mapply can take several arguments. The structure of the function is: mapply(FunctionName, Argument1, Argument2…).</p>
+<p>A sensitivity analysis is conducted by varying each parameter independently. We will start with C:</p>
+<pre class="r"><code>sensitivity&lt;-input%&gt;%
+  # &quot;Pipe&quot; our function to the input data frame:
+  mutate(
+    C_analysis=mapply(
+      sensitivity_fun,     # Name of the function
+      C_vec=C_draw,        # Argument 1: C (varies)
+      RUE_vec=2            # Argument 2: RUE (does not vary yet)
+    )
+  )
+
+# Plot results
+ggplot(sensitivity,aes(x=C_draw,y=C_analysis))+
+  geom_line()+
+    labs(                                  # Customize labels
+    title = &quot;Sensitivity analysis: C&quot;,
+    x = &quot;C&quot;,
+    y = &quot;Potential max yield (t.ha-1)&quot;
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>sensitivity&lt;-input%&gt;%
+  mutate(
+    C_analysis=mapply(sensitivity_fun,RUE_vec=2,C_vec=C_draw)
+  )%&gt;%
+  mutate(
+    RUE_analysis=mapply(sensitivity_fun,RUE_vec=RUE_draw,C_vec=0.12)
+  )
+
+ggplot(sensitivity)+
+  geom_line(aes(x=relative_draw,y=C_analysis),col=&quot;blue&quot;)+
+  geom_line(aes(x=relative_draw,y=RUE_analysis),col=&quot;red&quot;)+
+    labs(                                  # Customize labels
+    title = &quot;Sensitivity analysis: C (blue) and RUE (red)&quot;,
+    x = &quot;Parameters variation (relative scale)&quot;,
+    y = &quot;Potential max yield (t.ha-1)&quot;
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>According to the first results of this sensitivity analysis, it seems that the conversion of solar radiation to biomass influences the results more than the interception stage.</p>
+</div>
+<div id="uncertainty-analysis" class="section level1">
+<h1>2. Uncertainty analysis</h1>
+<pre class="r"><code># Number of draws
+N=100
+
+uncertainty&lt;-data.frame(
+    RUE_draw=runif(100,1,3),
+    C_draw=runif(100,0.06,0.18)
+  )%&gt;%
+  mutate(
+    uncertainty=mapply(sensitivity_fun,RUE_vec=RUE_draw,C_draw)
+  )
+
+ggplot(uncertainty,aes(y=uncertainty))+
+  geom_boxplot()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+</div>
