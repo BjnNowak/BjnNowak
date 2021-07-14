@@ -13,4 +13,9 @@ min_version = 0.15
 [author]
   name = "Jonathan Rutheiser"
   homepage = "http://jrutheiser.com/"
+  
+[[menu.shortcuts]]
+name = "<i class='fas fa-tags'></i> Tags"
+url = "/tags"
+weight = 30
 

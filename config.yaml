@@ -2,7 +2,7 @@ baseurl: https://bjnnowak.netlify.app/
 languageCode: en-us
 title: Benjamin Nowak
 theme: hugo-lithium
-googleAnalytics: ''
+googleAnalytics: 'G-HV0TSFQXMG'
 disqusShortname: ''
 ignoreFiles:
   - \.Rmd$
@@ -41,3 +41,4 @@ markup:
   goldmark:
     renderer:
       unsafe: yes
+
