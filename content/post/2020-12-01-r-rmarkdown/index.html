@@ -3,7 +3,7 @@ title: "[R] Crop model with tidyverse (Part I)"
 author: "Benjamin Nowak"
 date: 2021-07-01T21:13:14-05:00
 categories: ["R"]
-tags: ["R", "tidyverse", "modelisation"]
+tags: ["ggplot", "tidyverse", "model"]
 ---
 
 
@@ -64,7 +64,7 @@ In this tutorial, we will use the tidyverse to program the first part of a crop 
 library(tidyverse)</code></pre>
 <p>As inputs, we will use one weather dataset from the <a href="https://www.ncdc.noaa.gov/crn/qcdatasets.html">National Centers for Environmental Information</a>. For this tutorial, we will use weather data from Des Moines (USA). You may download the data required for this tutorial <a href="https://github.com/BjnNowak/CropModel">here</a>.
 To be consistent with our model, we will use a daily time step data set. There are many weather variables in these dataset, but we will focus on the average daily temperature, which is the input required for our model.</p>
-<pre class="r"><code># Load datafile 
+<pre class="r"><code># Load data 
 input &lt;- read.table(file=&quot;Weather_DesMoines.csv&quot;, header=TRUE, sep=&quot;;&quot;,dec=&quot;.&quot;)
 # Average daily temperature (in °C)
 # (display only first values)
@@ -502,10 +502,10 @@ ggplot(
     aes(x=day_number,y=grain_t,color=Scenario)    
   )+
   geom_point()+
-    labs(                                  
-      title = &quot;Comparison between two cities&quot;,
-      x = &quot;Day number&quot;,
-      y = &quot;Potential max yield (t.ha-1)&quot;
+  labs(                                  
+    title = &quot;Comparison between two cities&quot;,
+    x = &quot;Day number&quot;,
+    y = &quot;Potential max yield (t.ha-1)&quot;
   )</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
 </div>

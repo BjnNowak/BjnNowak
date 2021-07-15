@@ -3,7 +3,11 @@ date: "2016-05-05T21:48:51-07:00"
 title: About me
 ---
 
+<img src="/patchwork.PNG" width="12%" align="right" hspace="10px">
+
+
 My name is Benjamin Nowak and I am an agronomist working on remote sensing, precision farming and soil sciences. This website is for sharing my projects and courses with engineering students.
+
 
 # Peer-reviewed publications
 

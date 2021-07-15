@@ -16,10 +16,14 @@ menu:
   main:
     - name: About
       url: /about/
-    - name: Twitter
-      url: https://twitter.com/BjnNowak
-    - name: ResearchGate
-      url: https://www.researchgate.net/profile/Benjamin-Nowak-2
+      weight: 3
+    - name: Tags
+      url: /tags/
+      weight: 2
+    - name: Categories
+      url: /categories/
+      weight: 1
+    
 params:
   MathJaxCDN: //cdnjs.cloudflare.com/ajax/libs
   MathJaxVersion: 2.7.5

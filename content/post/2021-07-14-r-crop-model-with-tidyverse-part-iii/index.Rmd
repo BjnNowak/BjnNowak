@@ -1,0 +1,140 @@
+---
+title: '[R] Crop model with tidyverse (Part III)'
+author: 'Benjamin Nowak'
+date: '2021-07-14'
+slug: r-crop-model-with-tidyverse-part-iii
+categories: ["R"]
+tags:
+  - model
+  - optimization
+  - tidyverse
+---
+
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# Set Working directory for Notebook
+knitr::opts_knit$set(root.dir='/Users/bnowak/Documents/231220/WD/AnalyseSyst/')
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse)
+# Load data 
+input <- read.table(file="Weather_DesMoines.csv", header=TRUE, sep=";",dec=".")
+# Clean data
+data<-input%>%
+  dplyr::select(
+    tas = T_DAILY_MEAN,
+    rsds = SOLARAD_DAILY  
+  )%>% 
+  dplyr::mutate(                
+    day_number = row_number()     
+  )%>%
+  dplyr::filter(
+    day_number>=92                # Keep only data after April 1st (included)
+  )
+
+# Outside the function:
+# Rquired parameters to compute C
+# Light extinction coefficient
+K <- 0.56
+# Individual leaf area (m-2)
+S <- 0.05
+# Plant density (m-2)
+d <- 90000/10000
+
+# Model function
+model_fun <- function(
+  name,           # Scenario name 
+  data,           # Climatic variables to be used as inputs
+  GDD_1leaf,      # Thermal requirement for the emergence of one leaf
+  C,              # C=f(K,S,d)
+  RUE,            # Radiation use efficiency (gDM.MJ-1)
+  nthresh         # Number of leaves before grain filling
+  ){      
+  # Set parameters (without GDD_1leaf)
+  max_nleaf<-20
+  T0<-6 
+  f<-0.5      # Active fraction of incoming radiation
+  frac<-0.7   # Fraction of Net Primary Productivity dedicated to grain
+  
+  # Estimate yield
+  model<-data%>%
+    dplyr::mutate(
+      TT=dplyr::case_when(
+        tas<T0~0,
+        tas>=T0~tas-T0
+    ))%>%  
+    mutate(
+      GDD = cumsum(TT)
+    )%>%
+    mutate(
+      pot_nleaf = GDD/GDD_1leaf
+    )%>%
+    mutate(
+      nleaf = case_when(
+        pot_nleaf<=max_nleaf~round(pot_nleaf),
+        pot_nleaf>max_nleaf~max_nleaf
+      )
+    )%>%
+     # Incoming photosynthetic active radiation (MJ.m-2.day-1)
+    mutate(
+      PAR_inc = f*rsds
+    )%>%
+    # Absorbed PAR by the canopy (MJ.m-2.day-1)
+    mutate(
+      APAR = PAR_inc*(1-exp(-C*nleaf))
+    )%>%
+    # Net primary productivity dedicated to the aboveground biomass 
+    mutate(
+      NPP = RUE*APAR
+    )%>%
+    # Sum of aboveground biomass
+    mutate(
+      biom = cumsum(NPP)
+    )%>%
+    # Net primary productivity dedicated to the variable grain
+    mutate(
+      NPPgrain = case_when(
+        nleaf<nthresh ~ 0,
+        nleaf>=nthresh ~ frac*NPP
+      )
+    )%>%
+    # Total grain production (g.m-2)
+    mutate(
+      grain = cumsum(NPPgrain)
+    )%>%
+    # Total grain production (t.ha-1)
+    mutate(
+      grain_t = grain/100
+    )%>%
+    add_column(                                # To add scenario name to data
+      Scenario = name                          # (set 'name' in argument)
+    )
+  return(model)
+}
+
+```
+
+**Goals:**   
+
+  * Calculate Root Mean Square Error
+  * Optmize model 
+  * Plot results
+
+One common measure of the differences between values predicted by a model and the values observed is the Root Mean Square Error. In our case, it is calculated as follows:
+
+  $$ \quad\text{(Eq. 1)}\quad  RMSE = \sqrt\frac{\sum_{i=1}^N(Y_{i}^{Our Model}-Y_{i}^{Ref Model})^{2}}{N}$$
+
+With:<br> 
+$Y_{i}^{OurModel}$: final yield estimated by our model ($t.ha^{-1}$)<br>
+$Y_{i}^{RefModel}$: final yield estimated by reference model ($t.ha^{-1}$)<br>
+$N$: total number of simulations<br>
+
+
+# Acknowledgement
+
+Many thanks to Bruno Ringeval for taking the time to answer my questions.
+
+# Reference
+* Ringeval, B. *et al.* (**2021**). Potential yield simulated by global gridded crop models: using a process-based emulator to explain their differences. Geosci. Model Dev., 14, 1639–1656. https://doi.org/10.5194/gmd-14-1639-2021

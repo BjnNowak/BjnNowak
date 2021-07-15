@@ -1,0 +1,36 @@
+---
+title: '[R] Crop model with tidyverse (Part III)'
+author: 'Benjamin Nowak'
+date: '2021-07-14'
+slug: r-crop-model-with-tidyverse-part-iii
+categories: ["R"]
+tags:
+  - model
+  - optimization
+  - tidyverse
+---
+
+
+
+<p><strong>Goals:</strong></p>
+<ul>
+<li>Calculate Root Mean Square Error</li>
+<li>Optmize model</li>
+<li>Plot results</li>
+</ul>
+<p>One common measure of the differences between values predicted by a model and the values observed is the Root Mean Square Error. In our case, it is calculated as follows:</p>
+<p><span class="math display">\[ \quad\text{(Eq. 1)}\quad  RMSE = \sqrt\frac{\sum_{i=1}^N(Y_{i}^{Our Model}-Y_{i}^{Ref Model})^{2}}{N}\]</span></p>
+<p>With:<br>
+<span class="math inline">\(Y_{i}^{OurModel}\)</span>: final yield estimated by our model (<span class="math inline">\(t.ha^{-1}\)</span>)<br>
+<span class="math inline">\(Y_{i}^{RefModel}\)</span>: final yield estimated by reference model (<span class="math inline">\(t.ha^{-1}\)</span>)<br>
+<span class="math inline">\(N\)</span>: total number of simulations<br></p>
+<div id="acknowledgement" class="section level1">
+<h1>Acknowledgement</h1>
+<p>Many thanks to Bruno Ringeval for taking the time to answer my questions.</p>
+</div>
+<div id="reference" class="section level1">
+<h1>Reference</h1>
+<ul>
+<li>Ringeval, B. <em>et al.</em> (<strong>2021</strong>). Potential yield simulated by global gridded crop models: using a process-based emulator to explain their differences. Geosci. Model Dev., 14, 1639–1656. <a href="https://doi.org/10.5194/gmd-14-1639-2021" class="uri">https://doi.org/10.5194/gmd-14-1639-2021</a></li>
+</ul>
+</div>

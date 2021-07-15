@@ -5,9 +5,9 @@ date: '2021-07-11'
 slug: crop-model-with-r-and-tidyverse-part-ii
 categories: ["R"]
 tags:
-  - modelisation
-  - R
-  - tidyverse
+  - uncertainty
+  - model
+  - sensitivity
 ---
 
 
@@ -108,7 +108,7 @@ sensitivity_fun(C_vec=0.12,RUE_vec=3)</code></pre>
 <pre><code>## [1] 25.81298</code></pre>
 </div>
 <div id="perform-the-sensitivity-analysis" class="section level2">
-<h2>2.3. Perform the sensitivity analysis</h2>
+<h2>1.3. Perform the sensitivity analysis</h2>
 <p>We are now going to apply this function to the input data frame that we have prepared before. To do so, we will use the mapply() function, that allows to iterate the same function over a vector without the need of using the for loop, that is known to be slow in R. Compared to sapply(), which can perform the same task, mapply can take several arguments. The structure of the function is: mapply(FunctionName, Argument1, Argument2…).</p>
 <p>A sensitivity analysis is conducted by varying each parameter independently. We will start with C:</p>
 <pre class="r"><code>sensitivity&lt;-input%&gt;%
@@ -175,13 +175,13 @@ input&lt;-data.frame(
 )
 
 head(input)</code></pre>
-<pre><code>##      C_draw RUE_draw
-## 1 0.1240579 1.867185
-## 2 0.1531588 2.608337
-## 3 0.1116506 2.865691
-## 4 0.1382486 1.496192
-## 5 0.1740851 1.051421
-## 6 0.1435776 2.334253</code></pre>
+<pre><code>##       C_draw RUE_draw
+## 1 0.12440012 2.428775
+## 2 0.06991218 1.688883
+## 3 0.12831994 2.542708
+## 4 0.12249578 1.695337
+## 5 0.08131118 1.657315
+## 6 0.11336813 1.230105</code></pre>
 </div>
 <div id="create-a-function-1" class="section level2">
 <h2>2.2. Create a function</h2>

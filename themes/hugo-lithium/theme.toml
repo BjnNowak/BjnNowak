@@ -14,8 +14,8 @@ min_version = 0.15
   name = "Jonathan Rutheiser"
   homepage = "http://jrutheiser.com/"
   
-[[menu.shortcuts]]
-name = "<i class='fas fa-tags'></i> Tags"
-url = "/tags"
-weight = 30
+[[menu.main]]
+    name = "Tags"
+    url = "/tags/"
+    weight = 3
 

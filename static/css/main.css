@@ -126,6 +126,13 @@ img {
   color: #fff
 }
 
+.article-meta {
+  font-size: 15px;
+  color: #A07E84;
+  margin: 0;
+  line-height: 1.3;
+}
+
 .article-content p {
   margin: 15px 0 25px;
 }
@@ -228,7 +235,7 @@ img {
   color: #888;
   text-decoration: none;
   transition: color 150ms ease;
-  margin: 0 15px;
+  margin: 0 5px;
 }
 
 .footer-links a:hover,
@@ -237,9 +244,9 @@ img {
 }
 
 .footer-links li::before {
-  content: '|';
+  content: '';
   position: relative;
-  left: -2px;
+  left: 0;
 }
 
 .footer-links li:first-child::before {
@@ -248,7 +255,7 @@ img {
 .footer-links-kudos img {
   position: relative;
   top: 6px;
-  margin-left: 2px;
+  margin-left: 0px;
 }
 
 @media (min-width: 600px) {

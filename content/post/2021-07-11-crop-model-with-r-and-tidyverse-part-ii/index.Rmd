@@ -5,9 +5,9 @@ date: '2021-07-11'
 slug: crop-model-with-r-and-tidyverse-part-ii
 categories: ["R"]
 tags:
-  - modelisation
-  - R
-  - tidyverse
+  - uncertainty
+  - model
+  - sensitivity
 ---
 
 ```{r setup, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
@@ -227,7 +227,7 @@ sensitivity_fun<-function(C_vec,RUE_vec){
 sensitivity_fun(C_vec=0.12,RUE_vec=3)
 
 ```
-## 2.3. Perform the sensitivity analysis
+## 1.3. Perform the sensitivity analysis
 
 We are now going to apply this function to the input data frame that we have prepared before. To do so, we will use the mapply() function, that allows to iterate the same function over a vector without the need of using the for loop, that is known to be slow in R. Compared to sapply(), which can perform the same task, mapply can take several arguments. The structure of the function is: mapply(FunctionName, Argument1, Argument2...).
 
