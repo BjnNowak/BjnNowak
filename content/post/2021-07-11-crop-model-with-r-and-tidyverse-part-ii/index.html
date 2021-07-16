@@ -5,9 +5,11 @@ date: '2021-07-11'
 slug: crop-model-with-r-and-tidyverse-part-ii
 categories: ["R"]
 tags:
-  - uncertainty
   - model
+  - uncertainty
   - sensitivity
+  - mapply
+  - tidyverse
 ---
 
 
@@ -40,7 +42,7 @@ baseline &lt;- model_fun(
 ggplot(data=baseline,aes(x=day_number,y=grain_t))+
   geom_point()+
   labs(  
-    title = &quot;Comparison between two cities&quot;,
+    title = &quot;Yield estimation for DesMoines&quot;,
     x = &quot;Day number&quot;,
     y = &quot;Potential max yield (t.ha-1)&quot;
   )</code></pre>
@@ -74,7 +76,7 @@ input</code></pre>
 <div id="create-a-function" class="section level2">
 <h2>1.2. Create a function</h2>
 <p>To apply our model to each of these cases, we need to create a new function.</p>
-<p>First, to simplify the sensitivity analysis we will limit ourselves to the comparison of the final yield. To do this, we will use the tail() function to extract only the last value.</p>
+<p>First, to simplify the sensitivity analysis, we will limit ourselves to the comparison of the final yield. To do this, we will use the tail() function to extract only the last value.</p>
 <pre class="r"><code>output&lt;-model_fun(
   name=&quot;DesMoines&quot;, 
   data=data, 
@@ -87,7 +89,7 @@ input</code></pre>
   tail(1)                   # Select only the last row 
 output</code></pre>
 <pre><code>##      grain_t
-## 275 17.20865</code></pre>
+## 196 13.63428</code></pre>
 <p>We will now create a new function that performs this extraction by taking as arguments our two variables of interest <span class="math inline">\(C\)</span> and <span class="math inline">\(RUE\)</span>:</p>
 <pre class="r"><code># Function creation
 sensitivity_fun&lt;-function(C_vec,RUE_vec){
@@ -101,11 +103,11 @@ sensitivity_fun&lt;-function(C_vec,RUE_vec){
     )%&gt;%
     select(grain_t)%&gt;%        # Select only yield values
     tail(1)
-  return(as.numeric(output))
+  return(as.numeric(output))  # Specify that you want numeric output
 }
 # &quot;Manual&quot; analysis with different values:
-sensitivity_fun(C_vec=0.12,RUE_vec=3)</code></pre>
-<pre><code>## [1] 25.81298</code></pre>
+sensitivity_fun(C_vec=0.12,RUE_vec=2)</code></pre>
+<pre><code>## [1] 13.63428</code></pre>
 </div>
 <div id="perform-the-sensitivity-analysis" class="section level2">
 <h2>1.3. Perform the sensitivity analysis</h2>
@@ -175,21 +177,21 @@ input&lt;-data.frame(
 )
 
 head(input)</code></pre>
-<pre><code>##       C_draw RUE_draw
-## 1 0.12440012 2.428775
-## 2 0.06991218 1.688883
-## 3 0.12831994 2.542708
-## 4 0.12249578 1.695337
-## 5 0.08131118 1.657315
-## 6 0.11336813 1.230105</code></pre>
+<pre><code>##      C_draw RUE_draw
+## 1 0.1719140 1.041877
+## 2 0.1688896 2.611372
+## 3 0.1626310 1.917853
+## 4 0.1787325 1.146964
+## 5 0.0634054 2.810553
+## 6 0.1103289 1.744807</code></pre>
 </div>
 <div id="create-a-function-1" class="section level2">
 <h2>2.2. Create a function</h2>
-<p>No need to create a new function here, we will use the same function we created for the sensibility analysis.</p>
+<p>No need to create a new function here, we will use the same function we created for the sensitivity analysis.</p>
 </div>
 <div id="perform-the-uncertainty-analysis" class="section level2">
 <h2>2.3. Perform the uncertainty analysis</h2>
-<p>We will also use mapply() to apply our function to our different combination of values of (C; RUE).</p>
+<p>We will also use mapply() to apply our function to our different combination of values of {<span class="math inline">\(C\)</span>; <span class="math inline">\(RUE\)</span>}.</p>
 <pre class="r"><code>uncertainty&lt;-input %&gt;%
   mutate(
     uncertainty=mapply(sensitivity_fun,RUE_vec=RUE_draw,C_vec=C_draw)
@@ -206,7 +208,7 @@ ggplot(uncertainty,aes(y=uncertainty))+
     axis.ticks.x=element_blank()            # Hide x-axis ticks
   )</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
-<p>We see that the uncertainty in the estimate of the final yield is high. This uncertainty can be reduced by optimizing the model, as we will do in the third part of this tutorial.</p>
+<p>We see that the uncertainty related to the estimation of the final yield is high. This uncertainty can be reduced by optimizing the model, as we will do in the third part of this tutorial.</p>
 </div>
 </div>
 <div id="reference" class="section level1">

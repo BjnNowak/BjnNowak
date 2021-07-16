@@ -7,7 +7,9 @@ categories: ["R"]
 tags:
   - model
   - optimization
+  - spatial
   - tidyverse
+  - group_by
 ---
 
 
@@ -15,18 +17,481 @@ tags:
 <p><strong>Goals:</strong></p>
 <ul>
 <li>Calculate Root Mean Square Error</li>
-<li>Optmize model</li>
+<li>Optimize model</li>
 <li>Plot results</li>
 </ul>
-<p>One common measure of the differences between values predicted by a model and the values observed is the Root Mean Square Error. In our case, it is calculated as follows:</p>
+<p>In the first part of this tutorial, we created the model, then we analyzed the uncertainty of its predictions in the second part. We will now evaluate the error associated with the model predictions (the Root Mean Square Error, RMSE), and then try to decrease this error by optimizing the <span class="math inline">\(RUE\)</span> parameter, which we previously identified as the one that most influenced the model results.</p>
+<div id="simulate-multiple-scenarios" class="section level1">
+<h1>1. Simulate multiple scenarios</h1>
+<p>First step is to apply our model to multiple situations simultaneously. We will focus on a geographical area that roughly covers the state of Iowa, in which the city of DesMoines that we studied earlier is located.</p>
+<div id="prepare-the-data" class="section level2">
+<h2>1.1. Prepare the data</h2>
+<p>Weather data in the file Weather_Iowa.csv (available <a href="https://github.com/BjnNowak/CropModel">here</a>). Units of temperature and radiation measurements must be changed before they are used in the model:</p>
+<pre class="r"><code># Load tidyverse 
+library(tidyverse)
+# Load data 
+input &lt;- read.table(file=&quot;Weather_Iowa.csv&quot;, header=TRUE, sep=&quot;,&quot;,dec=&quot;.&quot;)
+
+day_sowing&lt;-92                       # Sowing after 1st May
+day_harvest&lt;-287                     # Harvest ~ mid-october
+
+data&lt;-input%&gt;%
+  dplyr::filter(
+    day_number&gt;=day_sowing,                  
+    day_number&lt;=day_harvest                   
+  )%&gt;%
+  mutate(
+    tas=tas-273,15                   # Convert kelvin to degrees
+  )%&gt;%
+  mutate(
+    rsds=rsds*10^(-6)*24*60*60       # Convert watt to MJ.day-1
+  )
+
+head(data)</code></pre>
+<pre><code>##   X  Coordinates    lon   lat day_number       tas      rsds 15
+## 1 3 -91.25_40.25 -91.25 40.25        100  8.750000 24.450177 15
+## 2 4 -91.25_40.25 -91.25 40.25        101  8.375000  8.501291 15
+## 3 5 -91.25_40.25 -91.25 40.25        102  6.125000  9.225413 15
+## 4 6 -91.25_40.25 -91.25 40.25        103  6.299988 23.274854 15
+## 5 7 -91.25_40.25 -91.25 40.25        104  9.875000 24.700177 15
+## 6 8 -91.25_40.25 -91.25 40.25        105 14.750000 25.525130 15</code></pre>
+<p>Another important step in the preparation of the data will be to set the variable “Coordinates” as a factor. In the following steps, this will allow us to apply the model to each grid cell</p>
+<pre class="r"><code>data&lt;-data%&gt;%
+  select(
+    Coordinates, lon, lat,                 # Only keep requested variables 
+    day_number, tas, rsds
+  )%&gt;%                            
+  mutate(
+    Coordinates=as.factor(Coordinates)     # Set column coordinates as factor
+  )
+head(data)</code></pre>
+<pre><code>##    Coordinates    lon   lat day_number       tas      rsds
+## 1 -91.25_40.25 -91.25 40.25        100  8.750000 24.450177
+## 2 -91.25_40.25 -91.25 40.25        101  8.375000  8.501291
+## 3 -91.25_40.25 -91.25 40.25        102  6.125000  9.225413
+## 4 -91.25_40.25 -91.25 40.25        103  6.299988 23.274854
+## 5 -91.25_40.25 -91.25 40.25        104  9.875000 24.700177
+## 6 -91.25_40.25 -91.25 40.25        105 14.750000 25.525130</code></pre>
+<p>Before applying the model, we can map our study area.</p>
+<pre class="r"><code>theme_custom&lt;-theme(
+    panel.background = element_blank()     # Hide grey filling behind plot
+)
+
+map&lt;-ggplot(data=data,aes(x=lon,y=lat))+   
+  labs(
+    title=&quot;Coordinates for the dataset&quot;,
+    subtitle=&quot;Projection: WGS84&quot;,
+    x=&quot;Longitude&quot;,
+    y=&quot;Latitude&quot;
+  )+
+  theme_custom
+  
+map+
+  geom_tile(color=&quot;grey&quot;,fill=&quot;white&quot;)     # Plot grid on the map</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>We have eleven units in longitude and seven in latitude, that is 77 cells on which we will apply the model.</p>
+<p>For this study area, we can also map daily temperature or solar radiation. Below is an example of daily temperature at sowing date.</p>
+<pre class="r"><code>map_temp&lt;-map+
+  geom_tile(
+    data=filter(data,day_number==day_sowing),   # Keep only data for sowing date
+    aes(x=lon,y=lat,fill=tas)                   # Fill with temperature
+  )+
+  labs(
+    fill=&quot;Temp. (°C)&quot;
+  )
+map_temp</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>Finally, we will use annotate() to add to the map the city of DesMoines, which we have studied in the first two parts of the tutorial (longitude: -93.615451, latitude: 41.570438).</p>
+<pre class="r"><code>DM_loc&lt;-annotate(                                
+    geom=&quot;point&quot;,                         # Add one point for DesMoines 
+    x=-93.615451, y=41.570438,
+    color=&quot;white&quot;
+  )
+DM_name&lt;-annotate(                        # Add city name as label
+    geom=&quot;text&quot;,
+    x=-93.615451, y=41.570438+0.2,        # (slight shifts not to overlap the city name) 
+    label=&quot;Des Moines&quot;,
+    color=&quot;white&quot;
+  )
+
+map_temp+
+  DM_loc+
+  DM_name</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+</div>
+<div id="apply-model" class="section level2">
+<h2>1.2. Apply model</h2>
+<p>As shown above, our input table has data for 77 different situations. We cannot therefore use exactly the same function as in the first two parts of the tutorial. We need to modify our fonction to include group_by(), a function from {dplyr} that will convert our input table into a grouped table where operations are performed “by group”.</p>
+<div class="figure">
+<img src="/group_by_ungroup.png" style="width:80.0%" alt="" />
+<p class="caption"><strong>Figure 1</strong> <em>group_by() and ungroup() (Image credit: Allison Horst)</em></p>
+</div>
+<p>To illustrate this, we will apply group_by() to the very first step of our model: the computation of the sum of Growing Degree Days (<span class="math inline">\(GDD\)</span>). To perform this sum for each cell of the map (and not for all 77 cells), we will use the “Coordinates” factor.</p>
+<pre class="r"><code>T0&lt;-6                                          # Set base T° for corn
+
+model&lt;-data%&gt;%
+  dplyr::mutate(
+    TT=dplyr::case_when(
+      tas&lt;T0~0,
+      tas&gt;=T0~tas-T0
+  ))%&gt;%
+  group_by(Coordinates)%&gt;%                   # Specify grouping factor
+  arrange(day_number,by_group=TRUE)%&gt;%       # Order by day_number
+  mutate(
+    GDD = cumsum(TT)
+  )%&gt;%
+  ungroup()                                  # End grouping
+
+# Number of rows for input/output ?
+rbind(
+  nrow(data),
+  nrow(model)
+)</code></pre>
+<pre><code>##       [,1]
+## [1,] 15092
+## [2,] 15092</code></pre>
+<p>Grouping does not change how the data looks (here data and model tables have the same number of rows), it changes how it interacts with other functions. We can see this when mapping the sum of Growing Degree Days: a specific <span class="math inline">\(GDD\)</span> was calculated for each cell.</p>
+<pre class="r"><code>map_gdd&lt;-ggplot(
+  data=filter(model,day_number==day_harvest),
+  aes(x=lon,y=lat))+
+  geom_tile(aes(fill=GDD))+                     # Fill tile according to GDD
+  labs(
+    title=&quot;Mapping Growing Degree Days&quot;,
+    subtitle=&quot;Projection: WGS84&quot;,
+    x=&quot;Longitude&quot;,
+    y=&quot;Latitude&quot;,
+    fill=&quot;GDD (°C)&quot;
+  )+
+  theme_custom
+
+map_gdd</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>As in the example above, we will now include group_by() in the function used in the first two parts of the tutorial. This will allow us to estimate the final yield for each cell in our study area.</p>
+<p>Also, in order to simplify the function, we will only keep data (for the input table) and <span class="math inline">\(C\)</span> and <span class="math inline">\(RUE\)</span> as arguments, and move the other parameters inside the function.</p>
+<pre class="r"><code># Model function
+model_whole_fun &lt;- function(data,C,RUE){      
+  
+  # Set parameters 
+  GDD_1leaf&lt;-50   # Thermal requirement for the emergence of one leaf
+  max_nleaf&lt;-20   # Max number of leaves
+  nthresh&lt;-16     # Number of leaves before grain filling
+  T0&lt;-6           # Base temperature for corn
+  f&lt;-0.5          # Active fraction of incoming radiation
+  frac&lt;-0.7       # Fraction of Net Primary Productivity dedicated to grain
+  
+  # Estimate yield
+  model&lt;-data%&gt;%
+    dplyr::mutate(
+      TT=dplyr::case_when(
+        tas&lt;T0~0,
+        tas&gt;=T0~tas-T0
+    ))%&gt;%
+    group_by(Coordinates)%&gt;%              # TO INCLUDE: grouping by Coordinates
+    arrange(day_number,by_group=TRUE)%&gt;%  # + arrange by day_number
+    mutate(
+      GDD = cumsum(TT)
+    )%&gt;%
+    mutate(
+      pot_nleaf = GDD/GDD_1leaf
+    )%&gt;%
+    mutate(
+      nleaf = case_when(
+        pot_nleaf&lt;=max_nleaf~round(pot_nleaf),
+        pot_nleaf&gt;max_nleaf~max_nleaf
+      )
+    )%&gt;%
+    # Incoming photosynthetic active radiation (MJ.m-2.day-1)
+    mutate(
+      PAR_inc = f*rsds
+    )%&gt;%
+    # Absorbed PAR by the canopy (MJ.m-2.day-1)
+    mutate(
+      APAR = PAR_inc*(1-exp(-C*nleaf))
+    )%&gt;%
+    # Net primary productivity dedicated to the aboveground biomass 
+    mutate(
+      NPP = RUE*APAR
+    )%&gt;%
+    # Sum of aboveground biomass
+    mutate(
+      biom = cumsum(NPP)
+    )%&gt;%
+    # Net primary productivity dedicated to the variable grain
+    mutate(
+      NPPgrain = case_when(
+        nleaf&lt;nthresh ~ 0,
+        nleaf&gt;=nthresh ~ frac*NPP
+      )
+    )%&gt;%
+    # Total grain production (g.m-2)
+    mutate(
+      grain = cumsum(NPPgrain)
+    )%&gt;%
+    # Total grain production (t.ha-1)
+    mutate(
+      grain_t = grain/100
+    )%&gt;%
+    ungroup()                             # TO INCLUDE: End grouping   
+  
+  return(model)
+
+}</code></pre>
+<p>We can now apply our model to the whole study area.</p>
+<pre class="r"><code>model &lt;- model_whole_fun(data=data, C=0.2, RUE=2)   # Apply function
+
+map_yield&lt;-ggplot(
+  data=filter(model,day_number==day_harvest),       # Keep only final values
+  aes(x=lon,y=lat,fill=grain_t))+                   # Fill according to final yield
+  geom_tile()+                                      # Add tiles
+  labs(
+    title=&quot;Final yield&quot;,
+    subtitle=&quot;Projection: WGS84&quot;,
+    x=&quot;Longitude&quot;,
+    y=&quot;Latitude&quot;,
+    fill=&quot;Yield (t.ha-1)&quot;                           # Specify fill legend
+  )+
+  theme_custom
+
+map_yield</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<p>If you like, you can choose a more classic color scale for tile filling.</p>
+<pre class="r"><code>map_yield+
+  scale_fill_gradient(
+    low=&quot;red&quot;,            # Set color for low values
+    high=&quot;green&quot;          # Set color for high values
+  )+
+  DM_loc+
+  DM_name</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+</div>
+</div>
+<div id="evaluate-the-validity-of-the-model" class="section level1">
+<h1>2. Evaluate the validity of the model</h1>
+<p>One common measure of the differences between values predicted by a model and the values observed is the Root Mean Square Error (RMSE). The calculation of the RMSE is usually based on field data but, in this case, we will use the results of another crop model as reference.</p>
+<p>In our case, it is calculated as follows:</p>
 <p><span class="math display">\[ \quad\text{(Eq. 1)}\quad  RMSE = \sqrt\frac{\sum_{i=1}^N(Y_{i}^{Our Model}-Y_{i}^{Ref Model})^{2}}{N}\]</span></p>
 <p>With:<br>
 <span class="math inline">\(Y_{i}^{OurModel}\)</span>: final yield estimated by our model (<span class="math inline">\(t.ha^{-1}\)</span>)<br>
 <span class="math inline">\(Y_{i}^{RefModel}\)</span>: final yield estimated by reference model (<span class="math inline">\(t.ha^{-1}\)</span>)<br>
 <span class="math inline">\(N\)</span>: total number of simulations<br></p>
+<div id="load-reference-data" class="section level2">
+<h2>2.1. Load reference data</h2>
+<p>We will compare the results of our model with results from the <a href="https://www.pik-potsdam.de/en/institute/departments/activities/biosphere-water-modelling/lpjml">Lund-Potsdam-Jena managed land model</a>. Outputs of this reference model for our study area are available <a href="https://github.com/BjnNowak/CropModel">here</a>.</p>
+<pre class="r"><code># Load data 
+reference &lt;- read.table(file=&quot;Yields_Iowa_lpjml.csv&quot;, header=TRUE, sep=&quot;,&quot;,dec=&quot;.&quot;)
+head(reference)</code></pre>
+<pre><code>##   X    lon   lat   yield_t
+## 1 1 -96.25 40.25 10.154525
+## 2 2 -95.75 40.25 10.012679
+## 3 3 -95.25 40.25 10.053258
+## 4 4 -94.75 40.25  9.989664
+## 5 5 -94.25 40.25 10.041997
+## 6 6 -93.75 40.25 10.114156</code></pre>
+<p>As you can see, there is no “day_number” variable in this table, which only gives the final yield values.
+Before comparing these yields with the outputs of our model, we will slightly modify this table, by keeping only the necessary columns and changing the name of the variable where yields are stored.</p>
+<pre class="r"><code># Prepare data: select required columns and rename yield
+reference&lt;-reference%&gt;%
+  select(
+    lon=lon,
+    lat=lat,
+    grain_reference=yield_t  
+  )
+
+head(reference)</code></pre>
+<pre><code>##      lon   lat grain_reference
+## 1 -96.25 40.25       10.154525
+## 2 -95.75 40.25       10.012679
+## 3 -95.25 40.25       10.053258
+## 4 -94.75 40.25        9.989664
+## 5 -94.25 40.25       10.041997
+## 6 -93.75 40.25       10.114156</code></pre>
+</div>
+<div id="compare-model-to-reference" class="section level2">
+<h2>2.2. Compare model to reference</h2>
+<p>Now we are ready to compare the results of our model to the reference. In the ‘pipes’ below, we will start by applying our model with median values for both <span class="math inline">\(C\)</span> and <span class="math inline">\(RUE\)</span> parameters and only keep the results for the harvest day. Then, we will merge this table with those of the reference model (based on latitude and longitude coordinates). Finally, for each cell, we will calculate the gap between the results of our model and the reference.</p>
+<pre class="r"><code>comp &lt;- model_whole_fun(          # Apply model with median values for C and RUE
+  data=data, C=0.2, RUE=2
+  )%&gt;%
+  filter(
+    day_number==day_harvest       # Keep only final results
+  )%&gt;%
+  merge(
+    reference,by=c(&#39;lon&#39;,&#39;lat&#39;)   # Add results of the reference model
+  )%&gt;%
+  mutate(
+    gap=grain_t-grain_reference   # Compute gap between model and ref
+  )%&gt;%
+  mutate(
+    gap_square=gap*gap            # Compute square gap
+  )%&gt;%                            # (will be useful for RMSE computation)
+  select(
+    lon,lat,gap,gap_square
+  )
+
+head(comp)</code></pre>
+<pre><code>##      lon   lat      gap gap_square
+## 1 -91.25 40.25 5.938888   35.27039
+## 2 -91.25 40.75 6.052363   36.63110
+## 3 -91.25 41.25 5.643455   31.84859
+## 4 -91.25 41.75 4.750789   22.56999
+## 5 -91.25 42.25 4.845909   23.48284
+## 6 -91.25 42.75 4.289735   18.40182</code></pre>
+<p>We may now map the gap between our model and the reference.</p>
+<pre class="r"><code>map_gap&lt;-ggplot(
+  data=comp,       # Keep only final values
+  aes(x=lon,y=lat,fill=gap))+                   # Fill according to final yield
+  geom_tile()+                                      # Add tiles
+  labs(
+    title=&quot;Gap between model and reference&quot;,
+    subtitle=&quot;Projection: WGS84&quot;,
+    x=&quot;Longitude&quot;,
+    y=&quot;Latitude&quot;,
+    fill=&quot;Gap (t.ha-1)&quot;                           # Specify fill legend
+  )+
+  theme_custom
+
+map_gap</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p>Overall, we see that our model tends to overestimate yields. To know the average error for the whole area, we can calculate the RMSE, as specified in (Eq. 1).</p>
+<pre class="r"><code>rmse &lt;- comp%&gt;%
+  mutate(
+    cum_gap=cumsum(gap_square)      # Cumulative sum of square error
+  )%&gt;%
+  tail(1)%&gt;%                        # Keep only the last line
+  mutate(
+    RMSE=sqrt(cum_gap/nrow(comp))   # Compute RMSE (see (Eq.1))
+  )%&gt;%
+  select(RMSE)
+
+head(rmse)</code></pre>
+<pre><code>##        RMSE
+## 77 5.166122</code></pre>
+<p>So, with this configuration (with median value for <span class="math inline">\(C\)</span> and <span class="math inline">\(RUE\)</span>), our model has a mean error of 5t.ha-1 compared to the reference, which is rather substantial. We will try to optimize our model to reduce this error.</p>
+</div>
+</div>
+<div id="model-optimization" class="section level1">
+<h1>3. Model optimization</h1>
+<p>For the optimization of the model, we will focus on the <span class="math inline">\(RUE\)</span> parameter, which, as we saw in the second part, was the one that had the most influence on the final result of the model.</p>
+<div id="function-creation" class="section level2">
+<h2>3.1. Function creation</h2>
+<p>In order to facilitate the process, we will create a function that repeats the different steps of the RMSE calculation detailed above. As we want to optimize <span class="math inline">\(RUE\)</span>, we will take this parameter as argument.</p>
+<pre class="r"><code>optim_fun&lt;-function(RUE_var){
+
+  rmse &lt;- model_whole_fun(          # Apply model with median values for C and RUE
+    data=data, C=0.2, RUE=RUE_var
+    )%&gt;%
+    filter(
+      day_number==day_harvest       # Keep only final results
+    )%&gt;%
+    merge(
+      reference,by=c(&#39;lon&#39;,&#39;lat&#39;)   # Add results of the reference model
+    )%&gt;%
+    mutate(
+      gap=grain_t-grain_reference   # Compute gap between model and ref
+    )%&gt;%
+    mutate(
+      gap_square=gap*gap            # Compute square gap
+    )%&gt;%                            # (will be useful for RMSE computation)
+    select(
+      lon,lat,gap,gap_square
+    )%&gt;%
+    mutate(
+      cum_gap=cumsum(gap_square)    # Cumulative sum of square error
+    )%&gt;%
+    tail(1)%&gt;%                      # Keep only the last line
+    mutate(
+      RMSE=sqrt(cum_gap/nrow(comp)) # Compute RMSE (see (Eq.1))
+    )%&gt;%
+    select(RMSE)
+
+  return(as.numeric(rmse))
+
+}</code></pre>
+<p>This function now allows us to easily calculate the RMSE for different values of <span class="math inline">\(RUE\)</span>.</p>
+<pre class="r"><code>optim_fun(1)</code></pre>
+<pre><code>## [1] 2.22229</code></pre>
+<p>Above, we can see that decreasing the value of RUE from 2 to 1 has halved the error of the model.</p>
+</div>
+<div id="optimization-of-rue" class="section level2">
+<h2>3.2. Optimization of RUE</h2>
+<p>We are now looking for the value of RUE that maximizes the accuracy of the model (that is, the model configuration with the lowest RMSE). To do so, as with the sensitivity analysis (see Part II), we will create an input table with multiple values for RUE.</p>
+<pre class="r"><code>optim_input&lt;-data.frame(
+    RUE_draw=seq(1,3,0.1)       # RUE varies from 1 to 3 with a step of 0.1
+  )
+
+head(optim_input)</code></pre>
+<pre><code>##   RUE_draw
+## 1      1.0
+## 2      1.1
+## 3      1.2
+## 4      1.3
+## 5      1.4
+## 6      1.5</code></pre>
+<p>Then, we will apply our optimization function to each of these values of <span class="math inline">\(RUE\)</span>. To do so, as for the sentivity analysis, we will use mapply() (note that here we could also use sapply() because our function has only one argument).</p>
+<pre class="r"><code>optim&lt;-optim_input%&gt;%
+  # &quot;Pipe&quot; optimization function to the input data frame:
+  mutate(
+    rmse=mapply(
+      optim_fun,            # Name of the function
+      RUE_var=RUE_draw      # Name of the argument      
+    )
+  )
+
+head(optim)</code></pre>
+<pre><code>##   RUE_draw      rmse
+## 1      1.0 2.2222895
+## 2      1.1 1.5125451
+## 3      1.2 0.8422680
+## 4      1.3 0.4510416
+## 5      1.4 0.8774179
+## 6      1.5 1.5519943</code></pre>
+<p>Looking at the first rows of the table, it would appear that the minimum RMSE is achieved with a <span class="math inline">\(RUE\)</span> of 1.3.
+We can now confirm that with a plot.</p>
+<pre class="r"><code>ggplot(data=optim,aes(x=RUE_draw,y=rmse))+
+  geom_point()+
+  annotate(
+    geom=&quot;segment&quot;,
+    x=1.3,xend=1.3,y=-Inf,yend=Inf,
+    color=&quot;red&quot;)+
+  labs(
+    title = &quot;Model optimization&quot;,
+    subtitle = &quot;Choice of RUE minimizing RMSE (RUE=1.3)&quot;,
+    x=&quot;RUE (gDM.MJ-1)&quot;,
+    y=&quot;RMSE (t.ha-1)&quot;
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-20-1.png" width="672" /></p>
+<p>Finally, we can plot the map with the lowest RMSE.</p>
+<pre class="r"><code>optim_RUE&lt;-1.3
+# Apply function with &quot;best&quot; RUE 
+model_optim &lt;- model_whole_fun(data=data, C=0.2, RUE=optim_RUE)   
+
+map_best_yield&lt;-ggplot(
+  data=filter(model_optim,day_number==day_harvest),  # Keep only final values
+  aes(x=lon,y=lat,fill=grain_t))+                    # Fill according to final yield
+  geom_tile()+                                       # Add tiles
+  labs(
+    title=&quot;Best yield estimation&quot;,
+    subtitle=&quot;+/- 0.45 t.ha-1 compared to reference&quot;,
+    x=&quot;Longitude&quot;,
+    y=&quot;Latitude&quot;,
+    fill=&quot;Yield (t.ha-1)&quot;                            # Specify fill legend
+  )+
+  scale_fill_gradient(
+    low=&quot;red&quot;,            
+    high=&quot;green&quot;          
+  )+
+  DM_loc+
+  DM_name+
+  theme_custom
+
+
+map_best_yield</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-21-1.png" width="672" /></p>
+</div>
+</div>
 <div id="acknowledgement" class="section level1">
 <h1>Acknowledgement</h1>
-<p>Many thanks to Bruno Ringeval for taking the time to answer my questions.</p>
+<p>My deepest thanks to Bruno Ringeval who provided the data for this tutorial.</p>
 </div>
 <div id="reference" class="section level1">
 <h1>Reference</h1>

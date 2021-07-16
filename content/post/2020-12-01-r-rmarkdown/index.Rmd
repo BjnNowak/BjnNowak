@@ -3,7 +3,7 @@ title: "[R] Crop model with tidyverse (Part I)"
 author: "Benjamin Nowak"
 date: 2021-07-01T21:13:14-05:00
 categories: ["R"]
-tags: ["ggplot", "tidyverse", "model"]
+tags: ["ggplot2", "tidyverse", "model", "mutate", "case_when"]
 ---
 
 ```{r setup, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
@@ -73,7 +73,7 @@ library(tidyverse)
 ```
 
 As inputs, we will use one weather dataset from the [National Centers for Environmental Information](https://www.ncdc.noaa.gov/crn/qcdatasets.html). For this tutorial, we will use weather data from Des Moines (USA). You may download the data required for this tutorial [here](https://github.com/BjnNowak/CropModel).
-To be consistent with our model, we will use a daily time step data set. There are many weather variables in these dataset, but we will focus on the average daily temperature, which is the input required for our model.    
+To be consistent with our model, we will use a daily time step data set. There are many weather variables in this dataset, but we will focus on the average daily temperature, which is the input required for our model.    
 
 ```{r}
 # Load data 
@@ -83,7 +83,11 @@ input <- read.table(file="Weather_DesMoines.csv", header=TRUE, sep=";",dec=".")
 head(input$T_DAILY_MEAN)
 ```
 ## 2.2. Data preparation 
-For the rest of the tutorial, we will start from the input table and then progressively calculate the internal variables up to the output variable: the number of leaves. To do so, we will use a combination of functions assembled thanks to the pipe operator (**%>%'**), which allows to perform a sequence of actions. 
+For the rest of the tutorial, we will start from the input table and then progressively calculate the internal variables up to the output variable: the number of leaves. Thus, we will be close to the philosophy of the tidyverse.
+
+![**Figure 3** *The "tidy" philosophy (Image credit: Allison Horst)*](/tidydata_1.jpg){width=80%}
+
+To do so, we will use a combination of functions assembled thanks to the pipe operator (**%>%**), which allows to perform a sequence of actions. 
 
 As a first step, using the select() function from the {dplyr} package, we will select only the column with daily mean temperature and solar radiation, which are the only climate variables used in the model. In this step, we will also rename the variables in the same way as in the model, for more clarity. 
 
@@ -114,9 +118,13 @@ data<-input%>%
 
 head(data)
 ```
-In this tutorial, we are interested in corn development. In the northern hemisphere, corn is rarely sown before April 1st. Last step of our data preparation will be to keep only the dates after April 1st (day number = 92). To do so, we will use the filter() function.
+In this tutorial, we are interested in corn development. Therefore, we will keep only dates between standard sowing and harvest dates for the area. To do so, we will use the filter() function.
 
 ```{r}
+
+day_sowing<-92                       # Sowing after 1st May
+day_harvest<-287                     # Harvest ~ mid-october
+
 data<-input%>%
   dplyr::select(
     tas = T_DAILY_MEAN,
@@ -126,7 +134,8 @@ data<-input%>%
     day_number = row_number()     
   )%>%
   dplyr::filter(
-    day_number>=92                # Keep only data after April 1st (included)
+    day_number>=day_sowing,                  
+    day_number<=day_harvest
   )
 
 head(data)
@@ -355,7 +364,8 @@ data_sandstone<-input_sandstone%>%
     day_number = row_number()     
   )%>%
   dplyr::filter(
-    day_number>=92                
+    day_number>=day_sowing,                  
+    day_number<=day_harvest               
   )
 # Apply function for both datasets
 baseline <- model_fun(
@@ -387,7 +397,7 @@ ggplot(
 ## 3.2. Going further
 
 Following this tutorial, you may now complete the function based on the equations given by Ringeval *et al.* (2021) to obtain a model for estimating yield from weather data (a suggestion is given in the Appendix).
-In the next tutorial, we will see how to analyze the performance of this model (sensitivity analysis, uncertainty analysis, root mean square error...).
+In the next tutorial, we will see how to analyze the performance of this model (sensitivity analysis, uncertainty analysis error...).
 
 # Acknowledgement
 
@@ -405,7 +415,7 @@ You will find below a suggestion to code the whole model and estimate potential 
 ```{r, message=FALSE, warning=FALSE}
 
 # Outside the function:
-# Rquired parameters to compute C
+# Required parameters to compute C
 # Light extinction coefficient
 K <- 0.56
 # Individual leaf area (m-2)
@@ -491,7 +501,7 @@ baseline <- model_fun(
   data=data, 
   GDD_1leaf = 50,
   C=K*S*d,
-  RUE=2.5,
+  RUE=2,
   nthresh = 16
 )
 sandstone <- model_fun(
@@ -499,7 +509,7 @@ sandstone <- model_fun(
   data=data_sandstone, 
   GDD_1leaf = 50,
   C=K*S*d,
-  RUE=2.5,
+  RUE=2,
   nthresh = 16
 )
 # Merging results before plotting
