@@ -4,19 +4,15 @@ author: "Benjamin Nowak"
 date: 2021-07-01T21:13:14-05:00
 categories: ["R"]
 tags: ["ggplot2", "tidyverse", "model", "mutate", "case_when"]
+output:
+  blogdown::html_page:
+    toc: true
 ---
 
 ```{r setup, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 # Set Working directory for Notebook
 knitr::opts_knit$set(root.dir='/Users/bnowak/Documents/231220/WD/AnalyseSyst/')
 ```
-
-**Goals:**   
-
-  * Introduction to tidyverse  
-  * Program a model in R 
-  * Plotting results
-  
 
 The tidyverse is a collection of extensions designed to work together and based on a common philosophy, making data manipulation and plotting easier. 
 In this tutorial, we will use the tidyverse to program the first part of a crop model: **the estimation of the number of plant leaves from temperature data**, based on the work of [Ringeval *et al.* (2021)](https://doi.org/10.5194/gmd-14-1639-2021). This model will be applied to corn. 
@@ -397,7 +393,7 @@ ggplot(
 ## 3.2. Going further
 
 Following this tutorial, you may now complete the function based on the equations given by Ringeval *et al.* (2021) to obtain a model for estimating yield from weather data (a suggestion is given in the Appendix).
-In the next tutorial, we will see how to analyze the performance of this model (sensitivity analysis, uncertainty analysis error...).
+In [the second part](https://bjnnowak.netlify.app/2021/07/11/crop-model-with-r-and-tidyverse-part-ii/), we will see how to analyze the performance of this model (sensitivity analysis and uncertainty analysis).
 
 # Acknowledgement
 
@@ -406,8 +402,6 @@ Many thanks to Bruno Ringeval for taking the time to answer my questions.
 # References
 * Barnier, J. (**2021**). Introduction à R et au tidyverse. https://juba.github.io/tidyverse/index.html
 * Ringeval, B. *et al.* (**2021**). Potential yield simulated by global gridded crop models: using a process-based emulator to explain their differences. Geosci. Model Dev., 14, 1639–1656. https://doi.org/10.5194/gmd-14-1639-2021
-
-\newpage
 
 # Appendix
 

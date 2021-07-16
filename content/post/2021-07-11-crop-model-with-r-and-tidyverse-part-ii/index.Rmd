@@ -10,6 +10,10 @@ tags:
   - sensitivity
   - mapply
   - tidyverse
+
+output:
+  blogdown::html_page:
+    toc: true
 ---
 
 ```{r setup, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
@@ -120,20 +124,14 @@ model_fun <- function(
 
 ```
 
-**Goals:**   
-
-  * Perform sensitivity analysis
-  * Perform uncertainty analysis 
-  * Plot results
-
-In the first part, we created a model that estimates the maximum potential yield of corn based on weather data (temperature and solar radiation). Briefly, this estimation is done in three steps:     
+In [the first part](https://bjnnowak.netlify.app/2021/07/01/r-crop-model-with-tidyverse-part-i/)) of this tutorial, we created a model that estimates the maximum potential yield of corn based on weather data (temperature and solar radiation). Briefly, this estimation is done in three steps:     
   **1.** Estimation of number of leaves (based on daily temperature)    
   **2.** Estimation of the amount of photosynthetically active radiation intercepted by the plants   
   **3.** Conversion of this amount of radiation into biomass (first plant then grain)    
 
 We will now investigate the influence of the different parameters on the model's results. 
 
-we will use the same data as for the first part, as well as the function created to run the model. We won't go into detail about the data or the creation of this function here, but you must have it loaded in your script to use it (if necessary, you may find the code of this function in the Appendix of [the first part](https://bjnnowak.netlify.app/2021/07/01/r-crop-model-with-tidyverse-part-i/)).
+We will use the same data as for the first part, as well as the function created to run the model. We won't go into detail about the data or the creation of this function here, but you must have it loaded in your script to use it (if necessary, you may find the code of this function in the Appendix of [the first part](https://bjnnowak.netlify.app/2021/07/01/r-crop-model-with-tidyverse-part-i/)).
 
 ```{r, message=FALSE, warning=FALSE}
 # Load tidyverse 
@@ -350,7 +348,7 @@ ggplot(uncertainty,aes(y=uncertainty))+
 
 ```
 
-We see that the uncertainty related to the estimation of the final yield is high. This uncertainty can be reduced by optimizing the model, as we will do in the third part of this tutorial. 
+We see that the uncertainty related to the estimation of the final yield is high. This uncertainty can be reduced by optimizing the model, as we will do in [the third part](https://bjnnowak.netlify.app/2021/07/14/r-crop-model-with-tidyverse-part-iii/) of this tutorial. 
 
 
 # Reference

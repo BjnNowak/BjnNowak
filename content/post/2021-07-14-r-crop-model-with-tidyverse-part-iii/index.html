@@ -10,17 +10,32 @@ tags:
   - spatial
   - tidyverse
   - group_by
+output:
+  blogdown::html_page:
+    toc: true
 ---
 
 
-
-<p><strong>Goals:</strong></p>
+<div id="TOC">
 <ul>
-<li>Calculate Root Mean Square Error</li>
-<li>Optimize model</li>
-<li>Plot results</li>
+<li><a href="#simulate-multiple-scenarios">1. Simulate multiple scenarios</a><ul>
+<li><a href="#prepare-the-data">1.1. Prepare the data</a></li>
+<li><a href="#apply-model">1.2. Apply model</a></li>
+</ul></li>
+<li><a href="#evaluate-the-validity-of-the-model">2. Evaluate the validity of the model</a><ul>
+<li><a href="#load-reference-data">2.1. Load reference data</a></li>
+<li><a href="#compare-model-to-reference">2.2. Compare model to reference</a></li>
+</ul></li>
+<li><a href="#model-optimization">3. Model optimization</a><ul>
+<li><a href="#function-creation">3.1. Function creation</a></li>
+<li><a href="#optimization-of-rue">3.2. Optimization of RUE</a></li>
+</ul></li>
+<li><a href="#acknowledgement">Acknowledgement</a></li>
+<li><a href="#reference">Reference</a></li>
 </ul>
-<p>In the first part of this tutorial, we created the model, then we analyzed the uncertainty of its predictions in the second part. We will now evaluate the error associated with the model predictions (the Root Mean Square Error, RMSE), and then try to decrease this error by optimizing the <span class="math inline">\(RUE\)</span> parameter, which we previously identified as the one that most influenced the model results.</p>
+</div>
+
+<p>In <a href="https://bjnnowak.netlify.app/2021/07/01/r-crop-model-with-tidyverse-part-i/">the first part</a>) of this tutorial, we created the model. In <a href="https://bjnnowak.netlify.app/2021/07/11/crop-model-with-r-and-tidyverse-part-ii/">the second part</a> we analyzed the uncertainty associated with the model predictions. We will now evaluate the error associated with the model predictions (the Root Mean Square Error, RMSE), and then try to decrease this error by optimizing the <span class="math inline">\(RUE\)</span> parameter, which we previously identified as the one that most influenced the model results.</p>
 <div id="simulate-multiple-scenarios" class="section level1">
 <h1>1. Simulate multiple scenarios</h1>
 <p>First step is to apply our model to multiple situations simultaneously. We will focus on a geographical area that roughly covers the state of Iowa, in which the city of DesMoines that we studied earlier is located.</p>

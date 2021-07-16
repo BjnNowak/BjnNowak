@@ -4,17 +4,30 @@ author: "Benjamin Nowak"
 date: 2021-07-01T21:13:14-05:00
 categories: ["R"]
 tags: ["ggplot2", "tidyverse", "model", "mutate", "case_when"]
+output:
+  blogdown::html_page:
+    toc: true
 ---
 
 
-
-<p><strong>Goals:</strong></p>
+<div id="TOC">
 <ul>
-<li>Introduction to tidyverse<br />
-</li>
-<li>Program a model in R</li>
-<li>Plotting results</li>
+<li><a href="#model-description">1. Model description</a></li>
+<li><a href="#writing-the-model">2. Writing the model</a><ul>
+<li><a href="#loading-packages-and-inputs">2.1. Loading packages and inputs</a></li>
+<li><a href="#data-preparation">2.2. Data preparation</a></li>
+<li><a href="#writing-model-equations">2.3. Writing model equations</a></li>
+</ul></li>
+<li><a href="#using-the-model">3. Using the model</a><ul>
+<li><a href="#creating-a-function">3.1. Creating a function</a></li>
+<li><a href="#going-further">3.2. Going further</a></li>
+</ul></li>
+<li><a href="#acknowledgement">Acknowledgement</a></li>
+<li><a href="#references">References</a></li>
+<li><a href="#appendix">Appendix</a></li>
 </ul>
+</div>
+
 <p>The tidyverse is a collection of extensions designed to work together and based on a common philosophy, making data manipulation and plotting easier.
 In this tutorial, we will use the tidyverse to program the first part of a crop model: <strong>the estimation of the number of plant leaves from temperature data</strong>, based on the work of <a href="https://doi.org/10.5194/gmd-14-1639-2021">Ringeval <em>et al.</em> (2021)</a>. This model will be applied to corn.</p>
 <div id="model-description" class="section level1">
@@ -385,7 +398,7 @@ ggplot(
 <div id="going-further" class="section level2">
 <h2>3.2. Going further</h2>
 <p>Following this tutorial, you may now complete the function based on the equations given by Ringeval <em>et al.</em> (2021) to obtain a model for estimating yield from weather data (a suggestion is given in the Appendix).
-In the next tutorial, we will see how to analyze the performance of this model (sensitivity analysis, uncertainty analysis error…).</p>
+In <a href="https://bjnnowak.netlify.app/2021/07/11/crop-model-with-r-and-tidyverse-part-ii/">the second part</a>, we will see how to analyze the performance of this model (sensitivity analysis and uncertainty analysis).</p>
 </div>
 </div>
 <div id="acknowledgement" class="section level1">
@@ -398,7 +411,6 @@ In the next tutorial, we will see how to analyze the performance of this model (
 <li>Barnier, J. (<strong>2021</strong>). Introduction à R et au tidyverse. <a href="https://juba.github.io/tidyverse/index.html" class="uri">https://juba.github.io/tidyverse/index.html</a></li>
 <li>Ringeval, B. <em>et al.</em> (<strong>2021</strong>). Potential yield simulated by global gridded crop models: using a process-based emulator to explain their differences. Geosci. Model Dev., 14, 1639–1656. <a href="https://doi.org/10.5194/gmd-14-1639-2021" class="uri">https://doi.org/10.5194/gmd-14-1639-2021</a></li>
 </ul>
-<div style="page-break-after: always;"></div>
 </div>
 <div id="appendix" class="section level1">
 <h1>Appendix</h1>

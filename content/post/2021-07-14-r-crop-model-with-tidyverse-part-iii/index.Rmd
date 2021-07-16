@@ -10,6 +10,9 @@ tags:
   - spatial
   - tidyverse
   - group_by
+output:
+  blogdown::html_page:
+    toc: true
 ---
 
 
@@ -18,13 +21,7 @@ tags:
 knitr::opts_knit$set(root.dir='/Users/bnowak/Documents/231220/WD/AnalyseSyst/')
 ```
 
-**Goals:**   
-
-  * Calculate Root Mean Square Error
-  * Optimize model 
-  * Plot results
-
-In the first part of this tutorial, we created the model, then we analyzed the uncertainty of its predictions in the second part. We will now evaluate the error associated with the model predictions (the Root Mean Square Error, RMSE), and then try to decrease this error by optimizing the $RUE$ parameter, which we previously identified as the one that most influenced the model results.
+In [the first part](https://bjnnowak.netlify.app/2021/07/01/r-crop-model-with-tidyverse-part-i/)) of this tutorial, we created the model. In [the second part](https://bjnnowak.netlify.app/2021/07/11/crop-model-with-r-and-tidyverse-part-ii/) we analyzed the uncertainty associated with the model predictions. We will now evaluate the error associated with the model predictions (the Root Mean Square Error, RMSE), and then try to decrease this error by optimizing the $RUE$ parameter, which we previously identified as the one that most influenced the model results.
 
 
 # 1. Simulate multiple scenarios

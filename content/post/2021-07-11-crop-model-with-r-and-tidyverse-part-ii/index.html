@@ -10,22 +10,35 @@ tags:
   - sensitivity
   - mapply
   - tidyverse
+
+output:
+  blogdown::html_page:
+    toc: true
 ---
 
 
-
-<p><strong>Goals:</strong></p>
+<div id="TOC">
 <ul>
-<li>Perform sensitivity analysis</li>
-<li>Perform uncertainty analysis</li>
-<li>Plot results</li>
+<li><a href="#sensitivity-analysis">1. Sensitivity analysis</a><ul>
+<li><a href="#prepare-the-inputs">1.1. Prepare the inputs</a></li>
+<li><a href="#create-a-function">1.2. Create a function</a></li>
+<li><a href="#perform-the-sensitivity-analysis">1.3. Perform the sensitivity analysis</a></li>
+</ul></li>
+<li><a href="#uncertainty-analysis">2. Uncertainty analysis</a><ul>
+<li><a href="#prepare-the-inputs-1">2.1. Prepare the inputs</a></li>
+<li><a href="#create-a-function-1">2.2. Create a function</a></li>
+<li><a href="#perform-the-uncertainty-analysis">2.3. Perform the uncertainty analysis</a></li>
+</ul></li>
+<li><a href="#reference">Reference</a></li>
 </ul>
-<p>In the first part, we created a model that estimates the maximum potential yield of corn based on weather data (temperature and solar radiation). Briefly, this estimation is done in three steps:<br />
+</div>
+
+<p>In <a href="https://bjnnowak.netlify.app/2021/07/01/r-crop-model-with-tidyverse-part-i/">the first part</a>) of this tutorial, we created a model that estimates the maximum potential yield of corn based on weather data (temperature and solar radiation). Briefly, this estimation is done in three steps:<br />
 <strong>1.</strong> Estimation of number of leaves (based on daily temperature)<br />
 <strong>2.</strong> Estimation of the amount of photosynthetically active radiation intercepted by the plants<br />
 <strong>3.</strong> Conversion of this amount of radiation into biomass (first plant then grain)</p>
 <p>We will now investigate the influence of the different parameters on the model’s results.</p>
-<p>we will use the same data as for the first part, as well as the function created to run the model. We won’t go into detail about the data or the creation of this function here, but you must have it loaded in your script to use it (if necessary, you may find the code of this function in the Appendix of <a href="https://bjnnowak.netlify.app/2021/07/01/r-crop-model-with-tidyverse-part-i/">the first part</a>).</p>
+<p>We will use the same data as for the first part, as well as the function created to run the model. We won’t go into detail about the data or the creation of this function here, but you must have it loaded in your script to use it (if necessary, you may find the code of this function in the Appendix of <a href="https://bjnnowak.netlify.app/2021/07/01/r-crop-model-with-tidyverse-part-i/">the first part</a>).</p>
 <pre class="r"><code># Load tidyverse 
 library(tidyverse)
 # Load previous data and function (not shown here)
@@ -177,13 +190,13 @@ input&lt;-data.frame(
 )
 
 head(input)</code></pre>
-<pre><code>##      C_draw RUE_draw
-## 1 0.1719140 1.041877
-## 2 0.1688896 2.611372
-## 3 0.1626310 1.917853
-## 4 0.1787325 1.146964
-## 5 0.0634054 2.810553
-## 6 0.1103289 1.744807</code></pre>
+<pre><code>##       C_draw RUE_draw
+## 1 0.08915449 1.885964
+## 2 0.12255660 2.000116
+## 3 0.15667535 1.523618
+## 4 0.14992695 1.519710
+## 5 0.16482885 1.181164
+## 6 0.12339330 2.708960</code></pre>
 </div>
 <div id="create-a-function-1" class="section level2">
 <h2>2.2. Create a function</h2>
@@ -208,7 +221,7 @@ ggplot(uncertainty,aes(y=uncertainty))+
     axis.ticks.x=element_blank()            # Hide x-axis ticks
   )</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
-<p>We see that the uncertainty related to the estimation of the final yield is high. This uncertainty can be reduced by optimizing the model, as we will do in the third part of this tutorial.</p>
+<p>We see that the uncertainty related to the estimation of the final yield is high. This uncertainty can be reduced by optimizing the model, as we will do in <a href="https://bjnnowak.netlify.app/2021/07/14/r-crop-model-with-tidyverse-part-iii/">the third part</a> of this tutorial.</p>
 </div>
 </div>
 <div id="reference" class="section level1">
