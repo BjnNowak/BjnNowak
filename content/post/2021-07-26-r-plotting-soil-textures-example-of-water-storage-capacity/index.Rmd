@@ -1,0 +1,358 @@
+---
+title: '[R] Plotting soil diagrams'
+author: "Benjamin Nowak"
+date: '2021-07-26'
+slug: r-plotting-soil-textures-example-of-water-storage-capacity
+categories: ["R"]
+tags:
+  - 'soil'
+  - 'ggplot2'
+  - 'texture'
+  - 'water'
+output:
+  blogdown::html_page:
+    toc: false
+---
+
+Soil texture diagrams are widely used in agronomy but can be difficult to plot. Recently, Sara Acevedo published a [flipbook](https://saryace.github.io/flipbook_soiltexture_en/#1/) showing how to plot soil texture diagrams with R. Following this example, let's see how we can represent an important parameter related to soil texture: the water storage capacity.
+
+![**Figure 1** *USDA soil textural triangle*](/soil_text_USDA.jpg){width=80%} 
+
+Two packages are available to plot soil texture triangles with R: [{soiltexture}](https://cran.r-project.org/web/packages/soiltexture/vignettes/soiltexture_vignette.pdf) specifically dedicated to soil texture triangles and [{ggtern}](http://www.ggtern.com/) for plotting all kind of ternary diagrams. Here we will use {ggtern} because of its compatibility with ggplot2.
+
+
+# 1. Input creation
+
+We will start by simulating a soil texture dataset with random values for clay, silt and sand content, while making sure that the sum of the three variables does not exceed 100%. To do so, we will use the [RandVec()](https://rdrr.io/cran/Surrogate/man/RandVec.html) function from the {Surrogate} package.
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(Surrogate)
+library(magrittr)                # To change column name 
+
+N<-200                           # Setting number of draws
+
+input<-RandVec(
+  a=0, b=1,                    # Min/max values  
+  s=1,                         # Sum of all variables
+  n=3,                           # Number of variables
+  m=N                            # Number of draws
+) 
+
+input<-t(input$RandVecOutput)%>%
+  as.data.frame()%>%
+  set_colnames(
+    c("clay", "silt", "sand")    # Setting column names
+  )
+
+head(input)
+
+```
+
+Next, we will use two pedotransfers function to estimate the two main soil water retention characteristics: the permanent wilting point (soil moisture content at which the plant will wilt 
+and die) and field capacity (water content of the soil where all free water will drain form the soil through gravity). The water available to plants is between these two characteristic points
+
+Here, we will use Rawls and Brakensiek (1985) equations to estimate the permanent wilting point and the field capacity. For simplicity, we will assume the same organic matter content for all samples.
+
+```{r, message=FALSE, warning=FALSE}
+
+input<-input%>%
+  mutate(                                  
+    OM=0.025                                # OM content
+  )%>%
+  mutate(
+    pwp=0.026+0.5*clay+1.58*OM              # Wilting point
+  )%>%
+  mutate(
+    fc=0.2576-0.2*sand+0.36*clay+2.99*OM    # Field capacity
+  )%>%
+  mutate(
+    uw_per=(fc-pwp)*100                     # "Usable" wetness
+  )
+
+head(input)
+
+```
+
+
+# 2. Plotting soil textures
+
+Now, we can load {ggtern} to start plotting results.
+
+```{r, message=FALSE, warning=FALSE}
+
+library(ggtern)
+
+textures<-ggtern(     # Specify ggtern instead of ggplot 
+  data=input,         # Same as {ggplot2}: specify data and aes()
+  aes(
+    x = sand,
+    y = clay,
+    z = silt
+  )) +
+  geom_point()
+
+textures
+
+```
+
+Another way of using {ggtern} is to create a 'regular' {ggplot2} object, then add a third z dimension with coord_tern.
+
+
+```{r, message=FALSE, warning=FALSE}
+
+textures_ggplot<-ggplot(     # 'Regular' ggplot 
+  data=input,         
+  aes(
+    x = sand,
+    y = clay,
+    z = silt                 
+  )) +
+  coord_tern(                # Add z coordinate to ggplot
+    L='x',                   # Left pole
+    T='y',                   # Top pole
+    R='z'                    # Right pole
+  )+
+  geom_point()
+
+textures_ggplot
+  
+```
+
+As you can see, {ggtern} shares the same syntax as {ggplot2}, which makes it easy to customize the plot with the same attributes as other plots. An important point is that we can use attributes like size and color according to a fourth variable
+
+
+```{r, message=FALSE, warning=FALSE}
+
+textures<-ggtern(
+  data=input,aes(
+    x = sand,
+    y = clay,
+    z = silt
+  )) +
+  geom_point(
+    aes(color=uw_per),
+    size=2,alpha=0.5
+  )+
+  scale_color_continuous(
+    low="tomato",
+    high="dodgerblue"
+  )+
+  labs(
+    title="Diagram of available water",
+    subtitle="Difference between field capacity and wilting point",
+    color="Available water (%)"
+  )+
+  theme_bw()                 
+
+textures
+```
+
+But {ggtern} also provides specific attributes for ternary diagrams. 
+
+```{r, message=FALSE, warning=FALSE}
+
+textures_cust<-textures+
+  geom_crosshair_tern(       # Highlight 1st sample
+    data=head(input,1),
+    lty="dashed",size=1,
+    color="black"
+  )+
+  labs(
+    yarrow = "Clay (%)",
+    zarrow = "Silt (%)",
+    xarrow = "Sand (%)"
+  )+
+  theme_showarrows()+        # Add arrows to axis titles
+  theme_hidetitles()+
+  theme_clockwise()          # Direction of ternary rotation
+
+textures_cust
+
+```
+
+Now, if we want to plot the texture classes, {ggtern} contains the USDA texture triangle (but no other soil texture triangles).
+
+```{r, message=FALSE, warning=FALSE}
+
+data(USDA) # Load USDA
+head(USDA)
+
+```
+
+We can easily plot the classes boundaries with geom_polygon().
+
+```{r, message=FALSE, warning=FALSE}
+
+textures_classes<-textures_cust+
+  geom_polygon(
+    data=USDA,aes(x=Sand,y=Clay,z=Silt,group=Label),
+    fill=NA,size = 0.3,alpha=0.5,
+    color = "grey30"
+  )
+
+textures_classes
+
+```
+
+Plotting labels is a bit more complicated. Fortunately, [Sara](https://saryace.github.io/flipbook_soiltexture_en/#37) gave us a nice solution to prepare the labels before plotting: 
+
+```{r, message=FALSE, warning=FALSE}
+
+USDA_text <- USDA  %>% 
+  group_by(Label) %>%
+  summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+  ungroup()
+
+head(USDA_text)
+
+```
+
+We can now add names with geom_text().
+
+```{r, message=FALSE, warning=FALSE}
+
+textures_names<-textures_classes+
+  geom_text(
+    data=USDA_text,
+    aes(x=Sand,y=Clay,z=Silt,label=Label),
+    size = 2,
+    color = "grey30"
+  )
+
+textures_names
+
+```
+
+# 3. Data interpolation
+
+Now that we have seen the main functions for representing data with {ggtern}, we will see how we can perform interpolations with the same package.
+
+```{r, message=FALSE, warning=FALSE}
+
+empty<-ggplot()+             # 'Regular' ggplot 
+  coord_tern(                # Add z coordinate to ggplot
+    L='x',                   # Left pole
+    T='y',                   # Top pole
+    R='z'                    # Right pole
+  )+
+  labs(
+    yarrow = "Clay (%)",
+    zarrow = "Silt (%)",
+    xarrow = "Sand (%)"
+  )+
+  theme_bw()+
+  theme_showarrows()+        # Add arrows to axis titles
+  theme_hidetitles()+
+  theme_clockwise()          # Direction of ternary rotation
+
+empty
+
+```
+
+We will now add an interpolation of the available water based on the values of our input data set. To do so, we will use geom_interpolate_tern.
+
+```{r, message=FALSE, warning=FALSE}
+
+inter<-empty+
+  geom_interpolate_tern(
+    data=input,         
+    aes(
+      x = sand,y = clay,z = silt,
+      value = uw_per,
+      color=..level..
+    )
+  )+scale_color_continuous(
+    low="tomato",
+    high="dodgerblue"
+  )+
+  labs(
+    title="Diagram of available water",
+    subtitle="Difference between field capacity and wilting point",
+    color="Available water (%)"
+  )
+inter
+
+```
+
+As geom_smooth() in {ggplot2}, loess is the default smoothing method for {ggtern} (if the number of observations is less than 1000). We can also try different methods for interpolation. Below is an example with a linear model.
+
+```{r, message=FALSE, warning=FALSE}
+
+inter_lm<-empty+
+  geom_interpolate_tern(
+    data=input,         
+    aes(
+      x = sand,y = clay,z = silt,
+      value = uw_per,
+      color=..level..
+    ),
+    method='lm',                      # Specify method
+    formula=value~x+y,                # Specify formula
+    n=100                             # Number of grid points                             
+  )+scale_color_continuous(
+    low="tomato",
+    high="dodgerblue"
+  )+
+  labs(
+    title="Diagram of available water",
+    subtitle="Difference between field capacity and wilting point",
+    color="Available water (%)"
+  )
+inter_lm
+
+```
+
+For a contour filled plot, we may use stat_interpolate_tern(). But this often requires tweaking the parameters to get the desired output.
+
+```{r, message=FALSE, warning=FALSE}
+
+fill_lm<-empty+
+  stat_interpolate_tern(             
+    data=input,         
+    aes(
+      x = sand,y = clay,z = silt,
+      value = uw_per,
+      fill=..level..
+    ),
+    geom="polygon",                  # add geom
+    formula=value~x+y, 
+    method='lm',
+    n=100,bins=100,                  # Increase for smoother result
+    expand=1
+  )+
+  scale_fill_continuous(
+    low="tomato",
+    high="dodgerblue"
+  )+
+  labs(
+    title="Diagram of available water",
+    subtitle="Difference between field capacity and wilting point",
+    fill="Available water (%)"
+  )+
+  geom_polygon(
+    data=USDA,aes(x=Sand,y=Clay,z=Silt,group=Label),
+    fill=NA,size = 0.3,alpha=0.5,
+    color = "white"
+  )+
+  geom_text(
+    data=USDA_text,
+    aes(x=Sand,y=Clay,z=Silt,label=Label),
+    size = 2,
+    color = "white"
+  )
+
+fill_lm
+
+```
+
+# Acknowledgement
+
+Many thanks to Sara Acevedo for sharing her presentation on soil texture triangles with R.
+
+# References
+
+* Acevedo, S. (**2021**). Soil texture triangles using R.
+* Hamilton, (**2016**). ggtern: ternary diagrams in R. 
+* Rawls, W. J. and Brakensiek D. L. (**1985**). Prediction of soil water properties for hydrologic modeling. Proceedings of Symposium on Watershed Management in the Eighties. 
+
