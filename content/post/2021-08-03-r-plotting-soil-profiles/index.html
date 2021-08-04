@@ -1,0 +1,356 @@
+---
+title: '[R] Soil profiles and chronosequence with ggplot2'
+author: Benjamin Nowak
+date: '2021-08-03'
+slug: r-plotting-soil-profiles
+categories:
+  - ['R']
+tags:
+  - 'soil'
+  - 'ggplot2'
+  - 'pedogenesis'
+---
+
+
+
+<p>This post presents a framework to help you quickly transform your soil profiles observations into a graph, with R and {ggplot2}. For soil and horizons names, we will use the terminology defined by the <a href="http://www.fao.org/3/i3794en/I3794en.pdf">World reference base for soil resources (FAO, 2014)</a>.</p>
+<p>The world reference base for soil resources (WRB) comprises two levels of categorical detail:</p>
+<ul>
+<li><strong>First level:</strong> 32 reference soil groups</li>
+<li><strong>Second level:</strong> name of the reference soil groups combined with a set of principal and supplementary qualifiers.</li>
+</ul>
+<p>For this tutorial, we will use only the first level and only refers to some of the main soil groups.</p>
+<div id="plotting-one-soil-profile" class="section level1">
+<h1>1. Plotting one soil profile</h1>
+<p>Let’s start with a simple description of a <a href="https://www.isric.org/explore/world-soil-distribution/calcisols">calcisol</a>. As a minimal example, the field notes related to one soil profile can be summarized as follows:</p>
+<pre class="r"><code># Calcisol description
+soil_profile &lt;- cbind.data.frame(
+  profile = &quot;Calcisol&quot;,               # Name of the whole profil
+  from = c(0,0.1),                    # Beginning of each horizon
+  to = c(0.1,0.4),                    # End of each horizon
+  horizon=c(&#39;Mollic&#39;,&#39;Calcic&#39;),       # Name of the horizon
+  munsell=c(&#39;10YR 3/2&#39;,&#39;10YR 7/2&#39;)    # Munsell color (Page, followed by value, then chroma)
+)
+
+soil_profile</code></pre>
+<pre><code>##    profile from  to horizon  munsell
+## 1 Calcisol  0.0 0.1  Mollic 10YR 3/2
+## 2 Calcisol  0.1 0.4  Calcic 10YR 7/2</code></pre>
+<p>Before making our first plot, we will do some data manipulation. To do so, we will load the {tidyverse} extension, which also includes {ggplot2} (you may refer to this <a href="https://bjnnowak.netlify.app/2021/07/01/r-crop-model-with-tidyverse-part-i/">post</a> for more information about the {tidyverse}).</p>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<p>Using tidy syntax, we will add a new column to specify each horizon height on our original data frame.</p>
+<pre class="r"><code># Calcisol description
+soil_profile &lt;- soil_profile%&gt;%
+  mutate(
+    height = to - from 
+  )
+
+soil_profile</code></pre>
+<pre><code>##    profile from  to horizon  munsell height
+## 1 Calcisol  0.0 0.1  Mollic 10YR 3/2    0.1
+## 2 Calcisol  0.1 0.4  Calcic 10YR 7/2    0.3</code></pre>
+<p>Now we are ready to make our first plot, using <em>geom_col</em> to represent our soil profile.</p>
+<pre class="r"><code>soil_plot&lt;-ggplot(
+  data = soil_profile,
+  aes(
+    x=profile,y=-height,                       # specify x and y axis
+    fill=fct_reorder(horizon,to,.desc=TRUE))   # make sure that horizons are on the right order
+  )+
+  geom_col(
+    width=0.4                                  # Profile width
+  )
+
+soil_plot</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>If you are not familiar with {ggplot2} syntax, you may read this <a href="https://bjnnowak.netlify.app/2021/08/02/r-getting-started-with-ggplot2-with-an-overview-of-nitrogen-use-efficiency/">tutorial</a> for more information. In the following lines, we will detail more closely certain particularities related to soil profiles representations.</p>
+<p>One of the first thing we want to change in our plot is the horizon colors to match field observations.</p>
+<div class="figure">
+<img src="/munsell.jpg" style="width:60.0%" alt="" />
+<p class="caption"><strong>Figure 1</strong> <em>The Munsell soil color charts (Image credit: SoilScience.info)</em></p>
+</div>
+<p>Munsell notations are not directly readable in R. Fortunately, the <a href="https://cran.r-project.org/web/packages/munsell/munsell.pdf">{munsell}</a> extension developed by Charlotte Wickham allows to transform Munsell notations into hex code, which are usable in R. A small drawback is that this extension only works for even chroma, whereas we also have odd chromas inside the Munsell soil color charts we use on the fields (soil scientists love precision!).</p>
+<pre class="r"><code># Install extension (to do only once)
+#install.packages(&#39;munsell&#39;)
+# Load extension
+library(munsell)  # Only works for even chroma</code></pre>
+<p>Now that we loaded the {munsell} extension, we may plot some colors with <em>plot_mnsl</em>.</p>
+<pre class="r"><code>plot_mnsl(&quot;10YR 2/2&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>However, the function we are most interested in is <em>mnsl()</em>, to convert Munsell notations to hex color codes.</p>
+<pre class="r"><code>mnsl(&quot;10YR 2/2&quot;)</code></pre>
+<pre><code>## [1] &quot;#3D2F21&quot;</code></pre>
+<p>Using this function, we will add a new column to our dataframe with the hex code matching the Munsell notation.</p>
+<pre class="r"><code>soil_profile&lt;-soil_profile%&gt;%
+  mutate(hex=mnsl(munsell))
+
+soil_profile</code></pre>
+<pre><code>##    profile from  to horizon  munsell height     hex
+## 1 Calcisol  0.0 0.1  Mollic 10YR 3/2    0.1 #554636
+## 2 Calcisol  0.1 0.4  Calcic 10YR 7/2    0.3 #BEAD98</code></pre>
+<p>Now we are ready to use this information to represent the real horizon colors on our plot.</p>
+<pre class="r"><code>soil_plot&lt;-soil_plot+
+  scale_fill_manual(
+    breaks=soil_profile$horizon,
+    values=soil_profile$hex)
+  
+soil_plot</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<p>Next step is to add the names of the horizons directly on the plot (and not in the legend next to it). We will do so with <em>geom_text</em>, taking advantage of the height column we created before.</p>
+<pre class="r"><code>soil_plot&lt;-soil_plot+
+  guides(fill=FALSE)+                      # Hide legend
+  geom_text(
+    aes(y=-(from+height/2),label=horizon)  # Insert horizon names on the plot
+  )
+
+soil_plot</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p>We may now finish our first plot with some customization.</p>
+<pre class="r"><code>soil_plot+
+  scale_x_discrete(position = &quot;top&quot;)+    # Move profile name to the top
+  labs(
+    title = &quot;Soil profile description&quot;,
+    y = &quot;Depth (meters)&quot;,
+    x=&quot;&quot;
+  )+
+  theme_minimal()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+</div>
+<div id="plotting-a-soil-chronosequence" class="section level1">
+<h1>2. Plotting a soil chronosequence</h1>
+<p>Starting from this example, we will now see how we can plot a soil chronosequence. With the continuation of rock alteration and the leaching of the carbonates, calcisol may evolve into cambisol. Cambisols show signs of soil evolution such as colour change, soil structure development or leaching of carbonates but lack sufficient soil evolution to be included in other reference soil groups.</p>
+<pre class="r"><code># Calcisol description
+calcisol &lt;- cbind.data.frame(
+  profile = &quot;Calcisol&quot;,
+  from = c(0,0.1),
+  to = c(0.1,0.4),
+  horizon=c(&#39;Mollic&#39;,&#39;Calcic&#39;),
+  munsell=c(&#39;10YR 3/2&#39;,&#39;10YR 7/2&#39;)    
+)
+
+# Cambisol description
+cambisol &lt;- cbind.data.frame(
+  profile = &quot;Cambisol&quot;,
+  from = c(0,0.1),
+  to = c(0.1,0.8),
+  horizon=c(&#39;Mollic&#39;,&#39;Cambic&#39;),
+  munsell=c(&quot;10YR 3/2&quot;,&quot;10YR 5/2&quot;) # First value, then chroma
+)
+
+# Merging profiles observation
+soil_profile &lt;- rbind.data.frame(
+  calcisol,
+  cambisol
+) 
+
+# Adding height &amp; hex colors
+soil_profile &lt;- soil_profile%&gt;%
+  mutate(
+    height = to - from 
+  )%&gt;%
+  mutate(hex=mnsl(munsell))
+
+soil_profile</code></pre>
+<pre><code>##    profile from  to horizon  munsell height     hex
+## 1 Calcisol  0.0 0.1  Mollic 10YR 3/2    0.1 #554636
+## 2 Calcisol  0.1 0.4  Calcic 10YR 7/2    0.3 #BEAD98
+## 3 Cambisol  0.0 0.1  Mollic 10YR 3/2    0.1 #554636
+## 4 Cambisol  0.1 0.8  Cambic 10YR 5/2    0.7 #897866</code></pre>
+<p>Now that our dataframe is ready, we just have to follow excatly the same steps as previously to create a plot with multiple soil profiles.</p>
+<pre class="r"><code>soil_plot&lt;-ggplot(
+  data = soil_profile,
+  aes(
+    x=profile,y=-height,
+    fill=fct_reorder(horizon,to,.desc=TRUE))
+  )+
+  geom_col(
+    width=0.4
+  )+
+  scale_fill_manual(
+    breaks=soil_profile$horizon,
+    values=soil_profile$hex
+  )+
+  guides(fill=FALSE)+
+  geom_text(
+    aes(y=-(from+height/2),label=horizon),
+    color=&quot;white&quot;,fontface=&quot;italic&quot;,size=3.5
+  )+
+  scale_x_discrete(position = &quot;top&quot;)+
+  labs(
+    title = &quot;Soil chronosequence&quot;,
+    y = &quot;Depth (meters)&quot;,
+    x=&quot;&quot;
+  )+
+  theme_minimal()
+  
+soil_plot</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+</div>
+<div id="finer-description-of-horizons" class="section level1">
+<h1>3. Finer description of horizons</h1>
+<p>We will now see how we can add additional information on the plot about the characteristics of the soil horizons and profiles.</p>
+<p>First, we will add a new profile to our chronosequence: a luvisol. Luvisols have a higher clay content in the subsoil than in the topsoil, as a result of pedogenetic processes (especially clay migration) leading to an argic subsoil horizon, that comes underneath an eluvial albic horizon.</p>
+<pre class="r"><code># Luvisol description
+luvisol &lt;- cbind.data.frame(
+  profile = &quot;Luvisol&quot;,
+  from = c(0,0.1,0.4),
+  to = c(0.1,0.4,0.9),
+  horizon=c(&#39;Mollic&#39;,&#39;Albic&#39;,&#39;Argic&#39;),
+  munsell=c(&quot;10YR 1/2&quot;,&#39;7.5YR 8/2&#39;,&quot;10YR 3/2&quot;) # First value, then chroma
+)
+
+# Merging profiles observation
+soil_profile &lt;- rbind.data.frame(
+  calcisol,
+  cambisol,
+  luvisol
+) 
+
+# Adding height &amp; hex colors
+soil_profile &lt;- soil_profile%&gt;%
+  mutate(
+    height = to - from 
+  )%&gt;%
+  mutate(hex=mnsl(munsell))
+
+soil_profile</code></pre>
+<pre><code>##    profile from  to horizon   munsell height     hex
+## 1 Calcisol  0.0 0.1  Mollic  10YR 3/2    0.1 #554636
+## 2 Calcisol  0.1 0.4  Calcic  10YR 7/2    0.3 #BEAD98
+## 3 Cambisol  0.0 0.1  Mollic  10YR 3/2    0.1 #554636
+## 4 Cambisol  0.1 0.8  Cambic  10YR 5/2    0.7 #897866
+## 5  Luvisol  0.0 0.1  Mollic  10YR 1/2    0.1 #291A0A
+## 6  Luvisol  0.1 0.4   Albic 7.5YR 8/2    0.3 #DAC7B5
+## 7  Luvisol  0.4 0.9   Argic  10YR 3/2    0.5 #554636</code></pre>
+<p>Now we can follow the same steps as in the previous parts to make a first plot of this extended chronosequence.</p>
+<pre class="r"><code>soil_plot&lt;-ggplot(
+  data = soil_profile,
+  aes(
+    x=profile,y=-height,
+    fill=fct_reorder(horizon,to,.desc=TRUE))
+  )+
+  geom_col(
+    width=0.4
+  )+
+  scale_fill_manual(
+    breaks=soil_profile$horizon,
+    values=soil_profile$hex
+  )+
+  guides(fill=FALSE)+
+  geom_text(
+    aes(y=-(from+height/2),label=horizon),
+    color=&quot;white&quot;,fontface=&quot;italic&quot;,size=3.5
+  )+
+  scale_x_discrete(position = &quot;top&quot;)+
+  labs(
+    title = &quot;Soil chronosequence&quot;,
+    y = &quot;Depth (meters)&quot;,
+    x=&quot;&quot;
+  )+
+  theme_minimal()
+  
+soil_plot</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+<p>One of the frequent consequences of clay migration is the accumulation of water at depth, which leads to iron oxydation. So we expect to find red marks on the argic horizon, as sign of this oxidation.</p>
+<div class="figure">
+<img src="/luvisol.jpg" style="width:50.0%" alt="" />
+<p class="caption"><strong>Figure 2</strong> <em>Chromic luvisol with features associated with water stagnation in the argic horizon, China (Image credit: isric.org)</em></p>
+</div>
+<p>Let’s see how to add this information on our plot. We will start by adding a column to our dataframe to indicate on which horizon we have observed oxidation marks (normally, this information should have been directly present in our field observations, and therefore in our initial dataframe).</p>
+<pre class="r"><code># Adding new column to specify that we only observed oxidation on the argic horizon
+soil_profile &lt;- soil_profile%&gt;%
+  mutate(
+    oxy = case_when(
+      horizon==&quot;Argic&quot;~&quot;Yes&quot;,
+      TRUE~&quot;No&quot;
+    ) 
+  )
+
+soil_profile</code></pre>
+<pre><code>##    profile from  to horizon   munsell height     hex oxy
+## 1 Calcisol  0.0 0.1  Mollic  10YR 3/2    0.1 #554636  No
+## 2 Calcisol  0.1 0.4  Calcic  10YR 7/2    0.3 #BEAD98  No
+## 3 Cambisol  0.0 0.1  Mollic  10YR 3/2    0.1 #554636  No
+## 4 Cambisol  0.1 0.8  Cambic  10YR 5/2    0.7 #897866  No
+## 5  Luvisol  0.0 0.1  Mollic  10YR 1/2    0.1 #291A0A  No
+## 6  Luvisol  0.1 0.4   Albic 7.5YR 8/2    0.3 #DAC7B5  No
+## 7  Luvisol  0.4 0.9   Argic  10YR 3/2    0.5 #554636 Yes</code></pre>
+<p>Now we will use the <a href="https://coolbutuseless.github.io/package/ggpattern/">{ggpattern}</a> extension from Mike FC to add a specific pattern to the horizon with oxidation marks.</p>
+<pre class="r"><code># Install {ggpattern}
+#remotes::install_github(&quot;coolbutuseless/ggpattern&quot;)
+# Load {ggpattern}
+library(ggpattern)</code></pre>
+<p>Many usual {ggplot2} <em>geom_</em> may be used with {ggpattern}. Here we will simply change <em>geom_col</em> used previously for <em>geom_col_pattern</em>, so we can add patterns to our barplot.</p>
+<pre class="r"><code>soil_plot&lt;-ggplot(
+  data = soil_profile,
+  aes(
+    x=profile,y=-height
+  ))+
+  geom_col_pattern(                               # Changing geom_col to geom_col_pattern
+    aes(
+      fill=fct_reorder(horizon,to,.desc=TRUE),    # Moving fill form ggplot to this aes()
+      pattern_fill=oxy                            # New pattern_fill attribute
+    ),
+    width=0.4,
+    pattern_color=NA                              # Hide pattern outside borders
+  )+
+  scale_pattern_fill_manual(                      # Choose pattern colors
+    values=c(NA,&quot;indianred&quot;),
+    breaks=c(&quot;No&quot;,&quot;Yes&quot;)
+  )
+
+soil_plot</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-18-1.png" width="672" /></p>
+<p>Now that we have seen how geom_col_pattern works, we can add former customization to our new plot.</p>
+<pre class="r"><code>soil_plot&lt;-soil_plot+
+  scale_fill_manual(
+    breaks=soil_profile$horizon,
+    values=soil_profile$hex
+  )+
+  guides(
+    fill=FALSE,
+    pattern_fill=FALSE
+  )+
+  geom_text(
+    aes(y=-(from+height/2),label=horizon),
+    color=&quot;white&quot;,fontface=&quot;italic&quot;,size=3.5
+  )+
+  scale_x_discrete(position = &quot;top&quot;)+
+  labs(
+    title = &quot;Soil chronosequence&quot;,
+    y = &quot;Depth (meters)&quot;,
+    x=&quot;&quot;,
+    pattern_fill=&quot;Oxydation&quot;                   # Only useful if you keep pattern_fill legend
+  )+
+  theme_minimal()
+  
+soil_plot</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
+<p>Finally, if we want to add single information on our plot, we may use <em>annotate</em> (instead of <em>geom_</em>).</p>
+<pre class="r"><code>soil_plot&lt;-soil_plot+
+  annotate(
+    geom=&quot;segment&quot;,
+    x=1,xend=3,
+    y=-1,yend=-1,
+    color=&quot;grey30&quot;,
+    arrow=arrow()
+  )+
+  annotate(
+    geom=&quot;text&quot;,
+    x=2,y=-0.95,
+    label=&quot;From 10,000s to 100,000s years&quot;,
+    color=&quot;grey30&quot;,
+    size=3.5, fontface=&quot;italic&quot;
+  )
+  
+soil_plot</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-20-1.png" width="672" /></p>
+<p>This framework should allow you to quickly start transforming your field observations into plots. Note that {ggpattern} has multiple options that you may use to plot other soil characteristics (coarse fragments, effervescence with hydrochloric acid…). Also, if you are interested in the representation of soil texture triangles, you may look at this <a href="https://bjnnowak.netlify.app/2021/07/26/r-plotting-soil-textures-example-of-water-storage-capacity/">post</a>.</p>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<ul>
+<li>Food and Agriculture Organization of the United Nations (FAO), 2014. <a href="http://www.fao.org/3/i3794en/I3794en.pdf">World reference base for soil resources (WRB)</a>.</li>
+<li>Mike FC. <a href="https://coolbutuseless.github.io/package/ggpattern/index.html">ggpattern provides custom ggplot2 geoms which support filled areas with geometric and image-based patterns.</a></li>
+<li>Wickham C. <a href="https://cran.r-project.org/web/packages/munsell/munsell.pdf">Package ‘munsell’</a></li>
+</ul>
+</div>
