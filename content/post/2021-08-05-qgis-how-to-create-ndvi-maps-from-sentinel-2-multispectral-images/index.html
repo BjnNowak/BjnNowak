@@ -1,0 +1,116 @@
+---
+title: '[RS] How to create NDVI maps from Sentinel-2 with QGIS'
+author: "Benjamin Nowak"
+date: '2021-08-09'
+slug: qgis-how-to-create-ndvi-maps-from-sentinel-2-multispectral-images
+categories: ['Remote Sensing']
+tags:
+  - 'NDVI'
+  - 'Sentinel'
+  - 'QGIS'
+---
+
+
+
+<p>A few months ago we published an article on <a href="https://iopscience.iop.org/article/10.1088/1748-9326/ac007c">winter soil cover before spring crops for France</a>. For each plot with spring crops, we used Sentinel-2 multispectral satellite images to estimate winter soil cover through the computation of the Normalized Difference Vegetation Index (NDVI), which is the most commonly used vegetation monitoring index in agriculture.</p>
+<p>After some basic elements on the rationale behind NDVI, this tutorial shows:</p>
+<ul>
+<li><strong>(i)</strong> how to download the Sentinel-2 images provided free of charge by the European Spatial Agency (ESA)</li>
+<li><strong>(ii)</strong> how to create a NDVI map with the open source software QGIS from these data.</li>
+</ul>
+<div id="rationale-behind-ndvi-computation" class="section level1">
+<h1>1. Rationale behind NDVI computation</h1>
+<p>They are three outcomes for solar radiation shining on a leave: absorption, reflection or transmission.</p>
+<div class="figure">
+<img src="/S2_FigA.PNG" style="width:80.0%" alt="" />
+<p class="caption"><strong>Figure 1</strong> <em>Dynamics of the luminous flux incoming on a leaf</em></p>
+</div>
+<p>Balance between reflection, absorption and transmission depend on the characteristics of the plant. This balance is expressed by different values. For example, reflectance (<span class="math inline">\(R\)</span>) is a value between 0 and 1 calculated as follows:</p>
+<p><span class="math display">\[ 
+\quad\text{(Eq. 1)}\quad R = \frac{\phi_{r}}{\phi_{i}}
+\]</span></p>
+<p>Where <span class="math inline">\(\phi_{r}\)</span> stands for reflected flux and <span class="math inline">\(\phi_{i}\)</span> for incoming flux. In the same way, absorbance (<span class="math inline">\(A\)</span>) corresponds to the ratio between absorbed flux and incoming flux.</p>
+<p>Incoming solar radiation flux is composed of different wavelengths. Photosynthetically active radiation (PAR), designates the spectral range of solar radiation (usually from 400 to 700 nanometers) that
+photosynthetic organisms are able to absorbate and use in the process of photosynthesis. PAR is usually quantified as a photon flux (μmol photons per m-2.s-1).</p>
+<div class="figure">
+<img src="/S2_FigB.PNG" style="width:60.0%" alt="" />
+<p class="caption"><strong>Figure 2</strong> <em>Absorbance spectrum of the main plant pigments (adapted from Whitmarsh and Govindjee)</em></p>
+</div>
+<p>As can be seen in Figure 2, the absorption spectrum of plants is high in the red (around 650nm) and then rapidly decreases in the infrared (above 700nm). Conversely, plants will have a higher relative reflectance in the infrared than in the red. Normalized Difference Vegetation Index (NDVI) calculation is based on the relative difference in reflectance between these two wavelengths:</p>
+<p><span class="math display">\[ 
+\quad\text{(Eq. 2)}\quad NDVI = \frac{R_{NIR}-R_{Red}}{R_{NIR}+R_{Red}}
+\]</span></p>
+<p>Where <span class="math inline">\(R_{Red}\)</span> is the reflectance in the red wavelength and <span class="math inline">\(R_{NIR}\)</span> the reflectance in the near infra-red.</p>
+<p>As reflectances vary between 0 and 1, the NDVI itself thus varies between -1 and +1. It may be a practical advantage compared to the simple ratio (Near infrared/Red), which is always positive but has a mathematically infinite range (0 to infinity).</p>
+<p>Reflectances are measured by spectral sensors, which simultaneously measure this value for several wavelengths (about ten for multispectral sensors, a hundred for hyperspectral sensors, thousands for ultraspectral sensors). We will discuss below Sentinel-2 multispectral sensors.</p>
+</div>
+<div id="download-sentinel-2-multispectral-aerial-images" class="section level1">
+<h1>2. Download Sentinel-2 multispectral aerial images</h1>
+<p>The Sentinel program of the ESA gathers several missions that focus on different aspects of Earth observation such as atmospheric, oceanic, and land monitoring. Vegetation monitoring is mainly carried out with the Sentinel-2 mission. Sentinel-2 is composed of two polar-orbiting satellites providing high-resolution optical imagery.</p>
+<p>On the data download interface of the <a href="https://scihub.copernicus.eu/dhus/#/home">Copernicus website</a>, you need to create and account and register, then follow this procedure:</p>
+<ul>
+<li>Manually search the area of interest on the map</li>
+<li>Once the area is located, click on the “Switch to area mode” icon at the top right of the map and then select the area of interest</li>
+</ul>
+<div class="figure">
+<img src="/S2_Fig1.PNG" style="width:100.0%" alt="" />
+<p class="caption"><strong>Figure 3</strong> <em>Selection of the area of interest on the Copernicus interface</em></p>
+</div>
+<ul>
+<li>From the Advanced search criteria, select:
+<ul>
+<li>Sensing period;</li>
+<li>Sentinel 2 mission (for multispectral aerial images);</li>
+<li>Do not select any particular satellite (keep both S2A and S2B for more results);</li>
+<li>Choose images with a low Cloud Cover rate (e.g. [0 TO 10], for a cloud cover rate below 10%);</li>
+<li>Product type: MSI is for multispectral images. Then choose the data that end with 2A (for Level 2A), which corresponds to the reflectance at the bottom of the atmosphere (including atmospheric correction), while the data ending with 1C corresponds to the reflectance at the top of the atmosphere.
+<ul>
+<li>Until March 2018: choose 2Ap (pilot version);</li>
+<li>After March 2018: choose 2A (operational version).</li>
+</ul></li>
+</ul></li>
+</ul>
+<div class="figure">
+<img src="/S2_Fig2.PNG" style="width:100.0%" alt="" />
+<p class="caption"><strong>Figure 4</strong> <em>Definition of a request with Advanced search criteria</em></p>
+</div>
+<p>Start a search and look through the results. Before downloading the data, you may check cloud coverage and image extent. Each file size is approximately 600MB (tiles of 100km*100km).</p>
+</div>
+<div id="create-a-ndvi-map-with-qgis" class="section level1">
+<h1>3. Create a NDVI map with QGIS</h1>
+<p><em>The following procedure has been performed with QGIS 3.6, but is easily reproducible with previous versions.</em></p>
+<p>Unzip the downloaded file. Inside it, look for the “Granule” folder, then the “IMG_DATA” folder. It contains three sub-folders “R10m”, “R20m” and “R60m” which correspond to three different resolutions (from 10m * 10m to 60m * 60m per pixel).</p>
+<p>Sentinel 2 provides reflectance measurements for 13 wavelengths, but only four of them are available at the 10m resolution:</p>
+<div class="figure">
+<img src="/S2_Fig3.PNG" style="width:100.0%" alt="" />
+<p class="caption"><strong>Figure 5</strong> <em>Spectral bands for Sentinel-2 sensors (Source: sentinel.esa.int)</em></p>
+</div>
+<p>As shown in Table 1, Sentinel-2 sensors have 4 native 10m bands: B02 (blue), B03 (green), B04 (red) and B08 (near infrared). As only bands B02 and B08 are required for NDVI calculation, maps can be produced with a resolution of 10*10m (however, keep in mind that Sentinel-2 images have a positioning uncertainty of approximately 10m, which must also be taken into account when overlaying several images for example).</p>
+<p>For the next steps, we will focus on the data in the “R10” folder.
+In QGIS, open the two rasters whose names end with *…_B04_10m* and *…_B08_10m* (red and near infrared reflectance, respectively). You may also open the “True Colors Index” raster (name ending with <em>…TCI_10m</em>) to check for cloud cover for example.</p>
+<p>Then, in the “Raster” menu, open the “Raster Calculator”. Enter the name of the layer to be saved, ending with *…_NDVI*. Following <span class="math inline">\(Eq. 2\)</span>, the NDVI formula to be entered is:</p>
+<p><span class="math display">\[ 
+\quad\text{(Eq. 3)}\quad NDVI = \frac{B08-B04}{B08+B04}
+\]</span></p>
+<p>Where <span class="math inline">\(B04\)</span> is the reflectance in the red wavelength and <span class="math inline">\(B08\)</span> the reflectance in the near infra-red.</p>
+<div class="figure">
+<img src="/S2_Fig4.PNG" style="width:100.0%" alt="" />
+<p class="caption"><strong>Figure 6</strong> <em>Compute NDVI with raster calculator</em></p>
+</div>
+<p>We may now display our NDVI map with an appropriate color scale (right click on the raster name &gt; Properties &gt; Style). Also, in order to display the contrasts more clearly for one field of interest, it is appropriate to cut the raster according to the field boundaries with the « Clip raster with polygon » function.</p>
+<div class="figure">
+<img src="/S2_Fig5.PNG" style="width:100.0%" alt="" />
+<p class="caption"><strong>Figure 7</strong> <em>Within-field variability of NDVI for a wheat field (April 2018)</em></p>
+</div>
+</div>
+<div id="processing-multiple-dates" class="section level1">
+<h1>4. Processing multiple dates</h1>
+<p>The above procedure works for a limited number of dates. If you want to process multiple dates and/or a large area of interest, it is better to work with an API, which allows you to process queries without having to download all the images.For example, for <a href="https://iopscience.iop.org/article/10.1088/1748-9326/ac007c">the article mentioned above</a>, we used the Google Earth Engine platform to extract an average NDVI per field for France. Yet, having manually processed an NDVI map first allows for a better understanding of APIs later on.</p>
+<p>I will present the processing of NDVI maps with the Google Earth Engine in a future post.</p>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<ul>
+<li>Nowak B. <em>et al.</em> (<strong>2021</strong>). <a href="https://iopscience.iop.org/article/10.1088/1748-9326/ac007c">Estimation of winter soil cover by vegetation before spring-sown crops for mainland France using multispectral satellite imagery</a></li>
+</ul>
+</div>
