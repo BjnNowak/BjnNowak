@@ -1,0 +1,369 @@
+---
+title: '[R] Labelling area plots'
+author: Benjamin Nowak
+date: '2021-08-10'
+slug: r-labelling-area-plots
+categories:
+  ['R']
+tags:
+  - 'ggplot2'
+---
+
+
+
+<p>Inserting the legend directly into a graph often makes it easier to read (see this <a href="https://www.cedricscherer.com/2021/07/05/a-quick-how-to-on-labelling-bar-graphs-in-ggplot2/">post</a> from Cedric Scherer on how to label barplots for example). But this can be more complicated to achieve for graphs that use cumulative numbers. Here we will see a quick example on how to annotate directly an area plot.</p>
+<div id="get-the-data" class="section level1">
+<h1>1. Get the data</h1>
+<p>For this example, we will use the data of week 33 (year 2021) of <a href="https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-08-10/readme.md">Tidy Tuesday</a>, about investments on infrastructure in the US from 1947 to 2017 <a href="https://www.bea.gov/system/files/papers/BEA-WP2020-12.pdf">(Bennett et <em>al.</em>, 2020)</a>.</p>
+<pre class="r"><code># Load data 
+chain_investment &lt;- readr::read_csv(&#39;https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-08-10/chain_investment.csv&#39;)
+
+head(chain_investment)</code></pre>
+<pre><code>## # A tibble: 6 x 5
+##   category                   meta_cat            group_num  year gross_inv_chain
+##   &lt;chr&gt;                      &lt;chr&gt;                   &lt;dbl&gt; &lt;dbl&gt;           &lt;dbl&gt;
+## 1 Total basic infrastructure Total infrastructu~         1  1947          73279.
+## 2 Total basic infrastructure Total infrastructu~         1  1948          83218.
+## 3 Total basic infrastructure Total infrastructu~         1  1949          95760.
+## 4 Total basic infrastructure Total infrastructu~         1  1950         103642.
+## 5 Total basic infrastructure Total infrastructu~         1  1951         102264.
+## 6 Total basic infrastructure Total infrastructu~         1  1952         107278.</code></pre>
+</div>
+<div id="single-area-plot" class="section level1">
+<h1>2. Single area plot</h1>
+<p>There’s a lot of information in this dataset, we’re going to start looking at the breakdown of investment between the three main domains: basic, social and digital.</p>
+<pre class="r"><code># Load extensions for data handling
+library(tidyverse)
+
+# Filter for main domains only
+main &lt;- chain_investment%&gt;%
+  filter(group_num==1)%&gt;%    # Filter thanks to &quot;group_num&quot; attribute                     
+  mutate(lab=case_when(      # New column with simpler names
+    category==&quot;Total basic infrastructure&quot;~&quot;Basic&quot;,
+    category==&quot;Total digital infrastructure&quot;~&quot;Digital&quot;,
+    category==&quot;Total social infrastructure&quot;~&quot;Social&quot;
+  ))
+
+head(main)</code></pre>
+<pre><code>## # A tibble: 6 x 6
+##   category               meta_cat          group_num  year gross_inv_chain lab  
+##   &lt;chr&gt;                  &lt;chr&gt;                 &lt;dbl&gt; &lt;dbl&gt;           &lt;dbl&gt; &lt;chr&gt;
+## 1 Total basic infrastru~ Total infrastruc~         1  1947          73279. Basic
+## 2 Total basic infrastru~ Total infrastruc~         1  1948          83218. Basic
+## 3 Total basic infrastru~ Total infrastruc~         1  1949          95760. Basic
+## 4 Total basic infrastru~ Total infrastruc~         1  1950         103642. Basic
+## 5 Total basic infrastru~ Total infrastruc~         1  1951         102264. Basic
+## 6 Total basic infrastru~ Total infrastruc~         1  1952         107278. Basic</code></pre>
+<p>We are ready to plot our first area plot, with {ggplot2} and <em>geom_area()</em>.</p>
+<pre class="r"><code>ggplot(
+  data=main,
+  aes(x=year,y=gross_inv_chain,fill=lab)      # Choose newly created lab column for fill
+  )+
+  geom_area()+
+  labs(
+    title = &quot;Evolution of investment on US infrastructures&quot;,
+    x=&quot;Year&quot;,
+    y=&quot;Investment (millions of 2012 $)&quot;
+  )+
+  theme_minimal()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>For more clarity, we will reorder factors from highest to lowest investments.</p>
+<pre class="r"><code># Reorder factors
+main$lab&lt;-factor(
+  main$lab,
+  c(
+    &quot;Digital&quot;,
+    &quot;Social&quot;,
+    &quot;Basic&quot;
+  ))
+
+# Plot again
+ggplot(
+  data=main,
+  aes(x=year,y=gross_inv_chain,fill=lab)   
+  )+
+  geom_area()+
+  labs(
+    title = &quot;Evolution of investment on US infrastructures&quot;,
+    x=&quot;Year&quot;,
+    y=&quot;Investment (millions of 2012 $)&quot;
+  )+
+  theme_minimal()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>Now we want to <strong>add the names of the factors directly to the right of the graph</strong>, so that we don’t have to add a legend. To do this, we will start by creating a new data frame that will contain the value taken by each factor for the last year (2017), and sum these values from the first factor (Basic) to the last factor (Digital), so we can use these values as y positions for our legend labels.</p>
+<pre class="r"><code>final&lt;-main%&gt;%
+  filter(year==&quot;2017&quot;)%&gt;%              # Keep only 2017 value
+  arrange(desc(lab))%&gt;%                # Inverse factor order (first is at the bottom of plot)
+  mutate(                              # Create new column ypos and
+    ypos=cumsum(gross_inv_chain)       # fill with cumulative sum of invest for 2017
+  )                                     
+
+final</code></pre>
+<pre><code>## # A tibble: 3 x 7
+##   category           meta_cat       group_num  year gross_inv_chain lab     ypos
+##   &lt;chr&gt;              &lt;chr&gt;              &lt;dbl&gt; &lt;dbl&gt;           &lt;dbl&gt; &lt;fct&gt;  &lt;dbl&gt;
+## 1 Total basic infra~ Total infrast~         1  2017         306038. Basic 3.06e5
+## 2 Total social infr~ Total infrast~         1  2017         247348. Soci~ 5.53e5
+## 3 Total digital inf~ Total infrast~         1  2017         245817  Digi~ 7.99e5</code></pre>
+<p>Then, we can use this data frame to position directly the labels on the plot, with <em>geom_text()</em>.</p>
+<pre class="r"><code>ggplot(
+  data=main,
+  aes(x=year,y=gross_inv_chain,fill=lab)   
+  )+
+  geom_area()+
+  labs(
+    title = &quot;Evolution of investment on US infrastructures&quot;,
+    x=&quot;Year&quot;,
+    y=&quot;Investment (millions of 2012 $)&quot;
+  )+
+  geom_text(
+    data=final,              # Different data than the main plot
+    aes(y=ypos,label=lab),   # y and lab in the aes() (change between labels)
+    x=2017                   # x is the same for all labels
+  )+
+  theme_minimal()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>As you can see, this first layout is not optimal. But we can now modify the code to improve the labels positioning</p>
+<pre class="r"><code>ggplot(
+  data=main,
+  aes(x=year,y=gross_inv_chain,fill=lab)   
+  )+
+  geom_area()+
+  labs(
+    title = &quot;Evolution of investment on US infrastructures&quot;,
+    x=&quot;Year&quot;,
+    y=&quot;Investment (millions of 2012 $)&quot;
+  )+
+  geom_text(
+    data=final,              
+    aes(
+      y=ypos-150000,         # Decrease label y position 
+      label=lab),   
+    x=2018, 
+    hjust=0                  # Left align text
+  )+
+  scale_x_continuous(
+    limits=c(1947,2022),     # Expand x axis to leave space for labels
+    breaks=c(1950,1980,2010)
+  )+
+  guides(
+   fill=FALSE                # No need for fill legend anymore !
+  )+
+  theme_minimal()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>This is already better. But, to make this plot even easier to read, we will finish this one by associating the same colors for our filled areas and matched labels.</p>
+<pre class="r"><code># Create color palette
+pal&lt;-c(&quot;#0F4C5C&quot;,&quot;#E36414&quot;,&quot;#9A031E&quot;)
+
+# Specify color palette with a new column inside main
+main&lt;-main%&gt;%
+  mutate(
+    col_lab=case_when(
+      lab==&quot;Basic&quot;~&quot;#0F4C5C&quot;,
+      lab==&quot;Social&quot;~&quot;#E36414&quot;,
+      lab==&quot;Digital&quot;~&quot;#9A031E&quot;
+    ))</code></pre>
+<p>Now that the color palette is created, we may use it inside <em>ggplot()</em> for both fill and color arguments.</p>
+<pre class="r"><code>ggplot(
+  data=main,
+  aes(x=year,y=gross_inv_chain,fill=lab)   
+  )+
+  geom_area()+
+  labs(
+    title = &quot;Evolution of investment on US infrastructures&quot;,
+    x=&quot;Year&quot;,
+    y=&quot;Investment (millions of 2012 $)&quot;
+  )+
+  geom_text(
+    data=final,              
+    aes(
+      y=ypos-150000,         
+      label=lab,
+      color=lab            # Add color inside the aes()
+    ),   
+    x=2018, 
+    hjust=0                  
+  )+
+  scale_fill_manual(       # Specify fill palette
+    breaks=main$lab,values=main$col_lab
+  )+
+  scale_color_manual(      # Same palette for color
+    breaks=main$lab,values=main$col_lab
+  )+
+  scale_x_continuous(
+    limits=c(1947,2022),     
+    breaks=c(1950,1980,2010)
+  )+
+  guides(
+   fill=FALSE,
+   color=FALSE             # Hide color legend
+  )+
+  theme_minimal()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+</div>
+<div id="faceted-area-plots" class="section level1">
+<h1>3. Faceted area plots</h1>
+<p>The workflow presented above may be adapted to faceted area plots. We will see this by detailing the categories included in each of the three main areas. Let’s start by selecting the sub-categories, with just a few modifications to shorten the name of the longest categories.</p>
+<pre class="r"><code>sub &lt;- chain_investment%&gt;%
+  filter(
+    group_num==4|   # Basic
+    group_num==17|  # Social
+    group_num==22   # Digital
+  )%&gt;%
+  mutate(lab=case_when(     # Create new column with shortest names
+    category==&quot;Conservation and development&quot;~&quot;Conservation&quot;,
+    category==&quot;Private computers in NAICS 515, 517, 518, and 519&quot;~&quot;Computers&quot;,
+    category==&quot;Private software in NAICS 515, 517, 518, and 519&quot;~&quot;Software&quot;,
+    category==&quot;Private communications equipment in NAICS 515, 517, 518, and 519&quot;~&quot;Com. equipment&quot;,
+    category==&quot;Private communications structures&quot;~&quot;Com. structures&quot;,
+    TRUE~category
+  ))</code></pre>
+<p>We may now produce faceted area plots.</p>
+<pre class="r"><code>ggplot(
+  data=sub,
+  aes(x=year,y=gross_inv_chain,fill=lab)   
+  )+
+  geom_area()+
+  facet_wrap(
+    ~meta_cat,
+    ncol=1,
+    strip.position = &quot;top&quot;
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p>With this number of categories, the advantage of labels directly in the graph is even more important. To do this, we will use the same procedure as in the previous section, but this time we will specify that the sums must be realized by major domains (basic, social or digital). To do so, we will use <em>group_by()</em>.</p>
+<pre class="r"><code>final_sub&lt;-sub%&gt;%
+  filter(year==&quot;2017&quot;)%&gt;%
+  group_by(group_num)%&gt;%    # Group by major fields before cumulative sums
+  arrange(desc(category))%&gt;%
+  mutate(ypos=cumsum(gross_inv_chain))%&gt;%
+  ungroup()</code></pre>
+<p>We may now use this data frame to position the labels with <em>geom_text()</em>.</p>
+<pre class="r"><code>ggplot(
+  data=sub,
+  aes(x=year,y=gross_inv_chain,fill=lab)   
+  )+
+  geom_area()+
+  facet_wrap(
+    ~meta_cat,
+    ncol=1,
+    strip.position = &quot;top&quot;
+  )+
+  geom_text(
+    data=final_sub,
+    aes(y=ypos-20000,label=lab,color=lab),
+    x=2018,hjust=0,
+    fontface=&quot;italic&quot;
+  )+
+  scale_x_continuous(limits = c(1947,2030),breaks=c(1950,1970,1990,2010) )+
+  guides(
+    fill=FALSE,
+    color=FALSE
+  )+
+  labs(
+    title = &quot;Evolution of investment on US infrastructures&quot;,
+    x=&quot;Year&quot;,
+    y=&quot;Investment (millions of 2012 $)&quot;
+  )+
+  theme_minimal()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<p>With so many labels, they are not easy to read. To improve readability, we will decrease the text size. We will also use the {ggrepel} extension to try to optimize the position of the labels, by replacing <em>geom_text()</em> with <em>geom_text_repel()</em>.</p>
+<pre class="r"><code>library(ggrepel)          # Load extension
+
+facet&lt;-ggplot(
+  data=sub,
+  aes(x=year,y=gross_inv_chain,fill=lab)   
+  )+
+  geom_area()+
+  facet_wrap(
+    ~meta_cat,
+    ncol=1,
+    strip.position = &quot;top&quot;
+  )+
+  geom_text_repel(        # Replace geom_text()
+    data=final_sub,
+    aes(y=ypos-20000,label=lab,color=lab),
+    direction=&#39;y&#39;,        # Repel on y-axis (align on x-axis)
+    x=2018,hjust=0,
+    size=3,               # Decrease size
+    fontface=&quot;italic&quot;
+  )+
+  scale_x_continuous(limits = c(1947,2030),breaks=c(1950,1970,1990,2010) )+
+  guides(
+    fill=FALSE,
+    color=FALSE
+  )+
+  labs(
+    title = &quot;Evolution of investment on US infrastructures&quot;,
+    x=&quot;Year&quot;,
+    y=&quot;Investment (millions of 2012 $)&quot;
+  )+
+  theme_minimal()
+
+facet</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p>As before, we may also customize the color palette.</p>
+<pre class="r"><code># Create color palettes based on 
+# color gradients of former legend
+
+pal_basic &lt;- c(
+  &quot;#030F12&quot;,
+  &quot;#0E4958&quot;,
+  &quot;#2CB9DD&quot;,
+  &quot;#73D1E8&quot;,
+  &quot;#B9E8F4&quot;
+)
+
+pal_social &lt;- c(
+  &quot;#83390B&quot;,
+  &quot;#E36414&quot;,
+  &quot;#F4AA7C&quot;
+)
+
+pal_digital &lt;- c(
+  &quot;#3C010C&quot;,
+  &quot;#9A031E&quot;,
+  &quot;#FA0F3A&quot;,
+  &quot;#FC738C&quot;
+)
+
+# Add color palette to data
+sub&lt;-sub%&gt;%
+  mutate(col_lab=case_when(
+    lab==&quot;Water&quot;~pal_basic[1],
+    lab==&quot;Transportation&quot;~pal_basic[2],
+    lab==&quot;Sewer&quot;~pal_basic[3],
+    lab==&quot;Power&quot;~pal_basic[4],
+    lab==&quot;Conservation&quot;~pal_basic[5],
+    lab==&quot;Public safety&quot;~pal_social[1],
+    lab==&quot;Health&quot;~pal_social[2],
+    lab==&quot;Education&quot;~pal_social[3],
+    lab==&quot;Software&quot;~pal_digital[1],
+    lab==&quot;Computers&quot;~pal_digital[2],
+    lab==&quot;Com. structures&quot;~pal_digital[3],
+    lab==&quot;Com. equipment&quot;~pal_digital[4]
+  ))
+
+# Add color to plots
+facet+  
+  scale_fill_manual(       # Specify fill palette
+    breaks=sub$lab,values=sub$col_lab
+  )+
+  scale_color_manual(      # Same palette for color
+    breaks=sub$lab,values=sub$col_lab
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+</div>
+<div id="combine-plots" class="section level1">
+<h1>4. Combine plots</h1>
+<p>Finally, we can combine both plots using {patchwork} or {cowplot}, as in the example below, so the legend of one plot becomes the title of other plots.</p>
+<p><img src="/Tidy_BEA.png" style="width:100.0%" /></p>
+<p>You may find the full code for this example <a href="">here.</a></p>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<ul>
+<li>Bennett J. <em>et al.</em>, <strong>2020</strong> <a href="https://www.bea.gov/system/files/papers/BEA-WP2020-12.pdf">Measuring Infrastructure in the Bureau of Economic Analysis National Economic Accounts</a></li>
+<li>Mock T., <a href="https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-08-10/readme.md">Tidy Tuesday</a></li>
+<li>Scherer C., <a href="https://www.cedricscherer.com/2021/07/05/a-quick-how-to-on-labelling-bar-graphs-in-ggplot2/">A Quick How-to on Labelling Bar Graphs in ggplot2</a></li>
+</ul>
+</div>
