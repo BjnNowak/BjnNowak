@@ -7,6 +7,8 @@ categories:
   ['R']
 tags:
   - 'ggplot2'
+summary: 'Inserting the legend directly into a graph often makes it easier to read. In this post, we will see a quick example on how to annotate directly single or faceted area plots.'
+image_preview: 'patchwork.PNG'
 ---
 
 
@@ -410,7 +412,7 @@ Finally, we can combine both plots using {patchwork} or {cowplot}, as in the exa
 
 ![](/Tidy_BEA.png){width=100%}
 
-You may find the full code for this example [here.]()
+You may find the full code for this example [here.](https://github.com/BjnNowak/TidyTuesday/blob/main/SC_BEA_Clean.R)
 
 # References
 

@@ -8,6 +8,7 @@ tags:
   - 'NDVI'
   - 'Sentinel'
   - 'QGIS'
+summary: 'The Normalized Difference Vegetation Index (NDVI) is the most commonly used vegetation monitoring index in agriculture. After some basic elements on the rationale behind NDVI, this tutorial shows how to download Sentinel-2 images and how to create NDVI maps with QGIS from these data.'
 ---
 
 A few months ago we published an article on [winter soil cover before spring crops for France](https://iopscience.iop.org/article/10.1088/1748-9326/ac007c). For each plot with spring crops, we used Sentinel-2 multispectral satellite images to estimate winter soil cover through the computation of the Normalized Difference Vegetation Index (NDVI), which is the most commonly used vegetation monitoring index in agriculture.

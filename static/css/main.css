@@ -117,13 +117,25 @@ img {
 
 .article-duration {
   margin-top: 12px;
-  float: right;
+  float: left;
   font-size: 10px;
   padding: 1px 5px;
   font-weight: bold;
   border-radius: 3px;
   background: #bbb;
   color: #fff
+}
+
+.article-summary {
+  margin-top: 2px;
+  margin-bottom: 10px;
+  float: left;
+  font-size: 16px;
+  padding: 1px 5px;
+  font-weight: lighter;
+  border-radius: 3px;
+  background: #ece4b7;
+  color: #5f464b
 }
 
 .article-meta {

@@ -9,6 +9,7 @@ tags:
   - 'soil'
   - 'ggplot2'
   - 'pedogenesis'
+summary: 'This post presents a simple framework to help you quickly transform your soil profiles observations into a graph, with {ggplot2} and {ggpattern}. after the plotting one soil profile, we see how to represent a whole chronosequence.' 
 ---
 
 This post presents a framework to help you quickly transform your soil profiles observations into a graph, with R and {ggplot2}. For soil and horizons names, we will use the terminology defined by the [World reference base for soil resources (FAO, 2014)](http://www.fao.org/3/i3794en/I3794en.pdf).

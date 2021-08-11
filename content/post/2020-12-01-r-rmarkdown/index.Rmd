@@ -7,6 +7,7 @@ tags: ["ggplot2", "tidyverse", "model", "mutate", "case_when"]
 output:
   blogdown::html_page:
     toc: true
+summary: 'The tidyverse is a collection of extensions designed to work together and based on a common philosophy, making data manipulation and plotting easier. In this tutorial, following the tidyverse philosophy, we will see how we can program the first part of a crop model: the estimation of the number of plant leaves from temperature data.'
 ---
 
 ```{r setup, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}

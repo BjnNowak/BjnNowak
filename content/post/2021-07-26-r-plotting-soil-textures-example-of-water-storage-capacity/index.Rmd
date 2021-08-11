@@ -12,6 +12,7 @@ tags:
 output:
   blogdown::html_page:
     toc: false
+summary: "Soil texture diagrams are widely used in agronomy but can be difficult to plot. Let's see how we can use {ggplot2} and {ggtern} to estimate and represent an important parameter related to soil texture: the water storage capacity."
 ---
 
 Soil texture diagrams are widely used in agronomy but can be difficult to plot. Recently, Sara Acevedo published a [flipbook](https://saryace.github.io/flipbook_soiltexture_en/#1/) showing how to plot soil texture diagrams with R. Following this example, let's see how we can represent an important parameter related to soil texture: the water storage capacity.

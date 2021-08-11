@@ -12,6 +12,7 @@ tags:
 output:
   blogdown::html_page:
     toc: false
+summary: "Soil texture diagrams are widely used in agronomy but can be difficult to plot. Let's see how we can use {ggplot2} and {ggtern} to estimate and represent an important parameter related to soil texture: the water storage capacity."
 ---
 
 
@@ -45,13 +46,13 @@ input&lt;-t(input$RandVecOutput)%&gt;%
   )
 
 head(input)</code></pre>
-<pre><code>##        clay       silt       sand
-## 1 0.1033792 0.68488369 0.21173710
-## 2 0.3513948 0.05207157 0.59653366
-## 3 0.3969640 0.29056268 0.31247331
-## 4 0.1577981 0.58143257 0.26076935
-## 5 0.2509072 0.71233078 0.03676203
-## 6 0.1985794 0.37231964 0.42910101</code></pre>
+<pre><code>##         clay      silt      sand
+## 1 0.10435077 0.6607402 0.2349090
+## 2 0.04813742 0.6179598 0.3339027
+## 3 0.08452404 0.7523101 0.1631658
+## 4 0.28527675 0.2743642 0.4403590
+## 5 0.01145161 0.1364547 0.8520937
+## 6 0.44450927 0.4473236 0.1081672</code></pre>
 <p>Next, we will use two pedotransfers function to estimate the two main soil water retention characteristics: the permanent wilting point (soil moisture content at which the plant will wilt
 and die) and field capacity (water content of the soil where all free water will drain form the soil through gravity). The water available to plants is between these two characteristic points</p>
 <p>Here, we will use Rawls and Brakensiek (1985) equations to estimate the permanent wilting point and the field capacity. For simplicity, we will assume the same organic matter content for all samples.</p>
@@ -70,13 +71,13 @@ and die) and field capacity (water content of the soil where all free water will
   )
 
 head(input)</code></pre>
-<pre><code>##        clay       silt       sand    OM       pwp        fc   uw_per
-## 1 0.1033792 0.68488369 0.21173710 0.025 0.1171896 0.3272191 21.00295
-## 2 0.3513948 0.05207157 0.59653366 0.025 0.2411974 0.3395454  9.83480
-## 3 0.3969640 0.29056268 0.31247331 0.025 0.2639820 0.4127624 14.87804
-## 4 0.1577981 0.58143257 0.26076935 0.025 0.1443990 0.3370034 19.26044
-## 5 0.2509072 0.71233078 0.03676203 0.025 0.1909536 0.4153242 22.43706
-## 6 0.1985794 0.37231964 0.42910101 0.025 0.1647897 0.3180184 15.32287</code></pre>
+<pre><code>##         clay      silt      sand    OM        pwp        fc    uw_per
+## 1 0.10435077 0.6607402 0.2349090 0.025 0.11767538 0.3229345 20.525909
+## 2 0.04813742 0.6179598 0.3339027 0.025 0.08956871 0.2828989 19.333021
+## 3 0.08452404 0.7523101 0.1631658 0.025 0.10776202 0.3301455 22.238347
+## 4 0.28527675 0.2743642 0.4403590 0.025 0.20813837 0.3469778 13.883945
+## 5 0.01145161 0.1364547 0.8520937 0.025 0.07122580 0.1660538  9.482803
+## 6 0.44450927 0.4473236 0.1081672 0.025 0.28775464 0.4707399 18.298527</code></pre>
 </div>
 <div id="plotting-soil-textures" class="section level1">
 <h1>2. Plotting soil textures</h1>

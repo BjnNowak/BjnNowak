@@ -11,6 +11,7 @@ tags:
 output:
   blogdown::html_page:
     toc: false
+summary: 'The {ggplot2}] extension, developed by Hadley Wickham, is a powerful tool for making plots with R. In this introduction to {ggplot2}, we will see here how to use this extension to compare nitrogen fertilizer use efficiencies between different countries of the world.'
 ---
 
 The [{ggplot2}](https://ggplot2.tidyverse.org/) extension, developed by Hadley Wickham, is a powerful tool for making plots with R.

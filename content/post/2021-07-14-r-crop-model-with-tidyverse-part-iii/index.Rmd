@@ -13,6 +13,8 @@ tags:
 output:
   blogdown::html_page:
     toc: true
+    
+summary: 'In this third part of the tutorial, we will now evaluate the error associated with the model predictions (the Root Mean Square Error, RMSE), and then try to decrease this error by optimizing one of the model parameter.'
 ---
 
 
