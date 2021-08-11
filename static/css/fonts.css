@@ -108,10 +108,10 @@ h1, h2, h3, h4, h5, h6, .article-duration, .archive-item-link, .footer {
   font-family: 'Lato', sans-serif;
 }
 
-.article-summary{
+.article-summary, .intro-content{
   font-family: 'Roboto';
 }
 
-.nav-links{
+.nav-links, .intro-title{
   font-family: 'Lobster Two';
 }

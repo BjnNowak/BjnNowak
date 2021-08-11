@@ -1,13 +1,13 @@
 {{ partial "header.html" . }}
 
-<main class="content" role="main">
+<main class="contentlist" role="main">
   
     {{ if .Content }}
   <article class="article">
     {{ if .Title }}
-    <h1 class="article-title">{{ .Title }}</h1>
+    <h1 class="intro-title">{{ .Title }}</h1>
     {{ end }}
-    <div class="article-content">
+    <div class="intro-content">
       {{ .Content }}
     </div>
   </article>
@@ -28,11 +28,11 @@
       </span>
       <br>
       <a class="article-summary">{{ .Summary }}</a>
-      <br>
     </article>
     {{ end }}
     {{ end }}
+
   </div>
-</main>
+</main >
 
 {{ partial "footer.html" . }}
