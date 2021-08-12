@@ -12,7 +12,7 @@ My teaching and research activities focus on remote sensing, soil sciences and b
 # Peer-reviewed publications
 
 * [Estimation of winter soil cover by vegetation before spring-sown crops for mainland France using multispectral satellite imagery](https://iopscience.iop.org/article/10.1088/1748-9326/ac007c/meta) (2021). <u>B Nowak</u>, G Marliac, A Michaud. *Environmental Research Letters*.
-  <p style="color: #5f464b; background-color: #ece4b7; font-family: Roboto; font-style: italic"> Less than half of fields with winter soil cover, with high influence of strong spatial variability and crop rotation.</p>
+  <p style="color: #5f464b; background-color: #ece4b7; font-family: Roboto; font-style: italic"> Less than half of French fields with winter soil cover before spring crops, with strong spatial variability and high influence of crop rotation (low soil cover for crops associated with arable farms, high soil cover for crops associated with livestock productions).</p>
   
 * [Precision agriculture: where do we stand? A review of the adoption of precision agriculture technologies on field crops Farms in developed countries](https://link.springer.com/article/10.1007/s40003-021-00539-x) (2021). <u>B Nowak</u>. *Agricultural Research*.
   <p style="color: #5f464b; background-color: #ece4b7; font-family: Roboto; font-style: italic"> High-adoption of "ready-to-use" technologies (GPS guidance...) but low adoption of variable rate application (for fertilization, seeding...).</p>
