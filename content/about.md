@@ -3,10 +3,11 @@ date: "2016-05-05T21:48:51-07:00"
 title: About me
 ---
 
-<img src="/patchwork.PNG" width="12%" align="right" hspace="10px">
+<img src="/profile.jpg" alt="" style="float: right; margin-right: 10px; width: 15%; min-width: 150px; border-radius: 50%">
+
+My teaching and research activities focus on remote sensing, soil sciences and biogeochemical cycles (mainly carbon, nitrogen and phosphorus).
 
 
-My teaching and research activities focus on remote sensing, soil sciences and biogeochemical cycles (mainly carbon, nitrogen and phosphorus). 
 
 # Peer-reviewed publications
 
@@ -23,3 +24,6 @@ My teaching and research activities focus on remote sensing, soil sciences and b
 * [To what extent does organic farming rely on nutrient inflows from conventional farming?](https://iopscience.iop.org/article/10.1088/1748-9326/8/4/044045/meta) (2013). <u>B Nowak</u>, T Nesme, C David, S Pellerin. *Environmental Research Letters*.  
 
 * [Disentangling the drivers of fertilising material inflows in organic farming](https://link.springer.com/article/10.1007/s10705-013-9578-5) (2013). <u>B Nowak</u>, T Nesme, C David, S Pellerin.*Nutrient Cycling in Agroecosystems*
+
+
+
