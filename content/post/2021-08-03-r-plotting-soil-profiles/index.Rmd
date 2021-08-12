@@ -30,8 +30,8 @@ Let's start with a simple description of a [calcisol](https://www.isric.org/expl
 # Calcisol description
 soil_profile <- cbind.data.frame(
   profile = "Calcisol",               # Name of the whole profil
-  from = c(0,0.1),                    # Beginning of each horizon
-  to = c(0.1,0.4),                    # End of each horizon
+  from = c(0,0.2),                    # Beginning of each horizon
+  to = c(0.2,0.4),                    # End of each horizon
   horizon=c('Mollic','Calcic'),       # Name of the horizon
   munsell=c('10YR 3/2','10YR 7/2')    # Munsell color (Page, followed by value, then chroma)
 )
@@ -175,8 +175,8 @@ Starting from this example, we will now see how we can plot a soil chronosequenc
 # Calcisol description
 calcisol <- cbind.data.frame(
   profile = "Calcisol",
-  from = c(0,0.1),
-  to = c(0.1,0.4),
+  from = c(0,0.2),
+  to = c(0.2,0.4),
   horizon=c('Mollic','Calcic'),
   munsell=c('10YR 3/2','10YR 7/2')    
 )
@@ -184,8 +184,8 @@ calcisol <- cbind.data.frame(
 # Cambisol description
 cambisol <- cbind.data.frame(
   profile = "Cambisol",
-  from = c(0,0.1),
-  to = c(0.1,0.8),
+  from = c(0,0.2),
+  to = c(0.2,0.8),
   horizon=c('Mollic','Cambic'),
   munsell=c("10YR 3/2","10YR 5/2") # First value, then chroma
 )
@@ -252,8 +252,8 @@ First, we will add a new profile to our chronosequence: a luvisol. Luvisols have
 # Luvisol description
 luvisol <- cbind.data.frame(
   profile = "Luvisol",
-  from = c(0,0.1,0.4),
-  to = c(0.1,0.4,0.9),
+  from = c(0,0.2,0.4),
+  to = c(0.2,0.4,0.9),
   horizon=c('Mollic','Albic','Argic'),
   munsell=c("10YR 1/2",'7.5YR 8/2',"10YR 3/2") # First value, then chroma
 )

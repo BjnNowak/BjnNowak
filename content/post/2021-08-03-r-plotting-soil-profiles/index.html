@@ -27,16 +27,16 @@ summary: 'This post presents a simple framework to help you quickly transform yo
 <pre class="r"><code># Calcisol description
 soil_profile &lt;- cbind.data.frame(
   profile = &quot;Calcisol&quot;,               # Name of the whole profil
-  from = c(0,0.1),                    # Beginning of each horizon
-  to = c(0.1,0.4),                    # End of each horizon
+  from = c(0,0.2),                    # Beginning of each horizon
+  to = c(0.2,0.4),                    # End of each horizon
   horizon=c(&#39;Mollic&#39;,&#39;Calcic&#39;),       # Name of the horizon
   munsell=c(&#39;10YR 3/2&#39;,&#39;10YR 7/2&#39;)    # Munsell color (Page, followed by value, then chroma)
 )
 
 soil_profile</code></pre>
 <pre><code>##    profile from  to horizon  munsell
-## 1 Calcisol  0.0 0.1  Mollic 10YR 3/2
-## 2 Calcisol  0.1 0.4  Calcic 10YR 7/2</code></pre>
+## 1 Calcisol  0.0 0.2  Mollic 10YR 3/2
+## 2 Calcisol  0.2 0.4  Calcic 10YR 7/2</code></pre>
 <p>Before making our first plot, we will do some data manipulation. To do so, we will load the {tidyverse} extension, which also includes {ggplot2} (you may refer to this <a href="https://bjnnowak.netlify.app/2021/07/01/r-crop-model-with-tidyverse-part-i/">post</a> for more information about the {tidyverse}).</p>
 <pre class="r"><code>library(tidyverse)</code></pre>
 <p>Using tidy syntax, we will add a new column to specify each horizon height on our original data frame.</p>
@@ -48,8 +48,8 @@ soil_profile &lt;- soil_profile%&gt;%
 
 soil_profile</code></pre>
 <pre><code>##    profile from  to horizon  munsell height
-## 1 Calcisol  0.0 0.1  Mollic 10YR 3/2    0.1
-## 2 Calcisol  0.1 0.4  Calcic 10YR 7/2    0.3</code></pre>
+## 1 Calcisol  0.0 0.2  Mollic 10YR 3/2    0.2
+## 2 Calcisol  0.2 0.4  Calcic 10YR 7/2    0.2</code></pre>
 <p>Now we are ready to make our first plot, using <em>geom_col</em> to represent our soil profile.</p>
 <pre class="r"><code>soil_plot&lt;-ggplot(
   data = soil_profile,
@@ -86,8 +86,8 @@ library(munsell)  # Only works for even chroma</code></pre>
 
 soil_profile</code></pre>
 <pre><code>##    profile from  to horizon  munsell height     hex
-## 1 Calcisol  0.0 0.1  Mollic 10YR 3/2    0.1 #554636
-## 2 Calcisol  0.1 0.4  Calcic 10YR 7/2    0.3 #BEAD98</code></pre>
+## 1 Calcisol  0.0 0.2  Mollic 10YR 3/2    0.2 #554636
+## 2 Calcisol  0.2 0.4  Calcic 10YR 7/2    0.2 #BEAD98</code></pre>
 <p>Now we are ready to use this information to represent the real horizon colors on our plot.</p>
 <pre class="r"><code>soil_plot&lt;-soil_plot+
   scale_fill_manual(
@@ -122,8 +122,8 @@ soil_plot</code></pre>
 <pre class="r"><code># Calcisol description
 calcisol &lt;- cbind.data.frame(
   profile = &quot;Calcisol&quot;,
-  from = c(0,0.1),
-  to = c(0.1,0.4),
+  from = c(0,0.2),
+  to = c(0.2,0.4),
   horizon=c(&#39;Mollic&#39;,&#39;Calcic&#39;),
   munsell=c(&#39;10YR 3/2&#39;,&#39;10YR 7/2&#39;)    
 )
@@ -131,8 +131,8 @@ calcisol &lt;- cbind.data.frame(
 # Cambisol description
 cambisol &lt;- cbind.data.frame(
   profile = &quot;Cambisol&quot;,
-  from = c(0,0.1),
-  to = c(0.1,0.8),
+  from = c(0,0.2),
+  to = c(0.2,0.8),
   horizon=c(&#39;Mollic&#39;,&#39;Cambic&#39;),
   munsell=c(&quot;10YR 3/2&quot;,&quot;10YR 5/2&quot;) # First value, then chroma
 )
@@ -152,10 +152,10 @@ soil_profile &lt;- soil_profile%&gt;%
 
 soil_profile</code></pre>
 <pre><code>##    profile from  to horizon  munsell height     hex
-## 1 Calcisol  0.0 0.1  Mollic 10YR 3/2    0.1 #554636
-## 2 Calcisol  0.1 0.4  Calcic 10YR 7/2    0.3 #BEAD98
-## 3 Cambisol  0.0 0.1  Mollic 10YR 3/2    0.1 #554636
-## 4 Cambisol  0.1 0.8  Cambic 10YR 5/2    0.7 #897866</code></pre>
+## 1 Calcisol  0.0 0.2  Mollic 10YR 3/2    0.2 #554636
+## 2 Calcisol  0.2 0.4  Calcic 10YR 7/2    0.2 #BEAD98
+## 3 Cambisol  0.0 0.2  Mollic 10YR 3/2    0.2 #554636
+## 4 Cambisol  0.2 0.8  Cambic 10YR 5/2    0.6 #897866</code></pre>
 <p>Now that our dataframe is ready, we just have to follow excatly the same steps as previously to create a plot with multiple soil profiles.</p>
 <pre class="r"><code>soil_plot&lt;-ggplot(
   data = soil_profile,
@@ -193,8 +193,8 @@ soil_plot</code></pre>
 <pre class="r"><code># Luvisol description
 luvisol &lt;- cbind.data.frame(
   profile = &quot;Luvisol&quot;,
-  from = c(0,0.1,0.4),
-  to = c(0.1,0.4,0.9),
+  from = c(0,0.2,0.4),
+  to = c(0.2,0.4,0.9),
   horizon=c(&#39;Mollic&#39;,&#39;Albic&#39;,&#39;Argic&#39;),
   munsell=c(&quot;10YR 1/2&quot;,&#39;7.5YR 8/2&#39;,&quot;10YR 3/2&quot;) # First value, then chroma
 )
@@ -215,12 +215,12 @@ soil_profile &lt;- soil_profile%&gt;%
 
 soil_profile</code></pre>
 <pre><code>##    profile from  to horizon   munsell height     hex
-## 1 Calcisol  0.0 0.1  Mollic  10YR 3/2    0.1 #554636
-## 2 Calcisol  0.1 0.4  Calcic  10YR 7/2    0.3 #BEAD98
-## 3 Cambisol  0.0 0.1  Mollic  10YR 3/2    0.1 #554636
-## 4 Cambisol  0.1 0.8  Cambic  10YR 5/2    0.7 #897866
-## 5  Luvisol  0.0 0.1  Mollic  10YR 1/2    0.1 #291A0A
-## 6  Luvisol  0.1 0.4   Albic 7.5YR 8/2    0.3 #DAC7B5
+## 1 Calcisol  0.0 0.2  Mollic  10YR 3/2    0.2 #554636
+## 2 Calcisol  0.2 0.4  Calcic  10YR 7/2    0.2 #BEAD98
+## 3 Cambisol  0.0 0.2  Mollic  10YR 3/2    0.2 #554636
+## 4 Cambisol  0.2 0.8  Cambic  10YR 5/2    0.6 #897866
+## 5  Luvisol  0.0 0.2  Mollic  10YR 1/2    0.2 #291A0A
+## 6  Luvisol  0.2 0.4   Albic 7.5YR 8/2    0.2 #DAC7B5
 ## 7  Luvisol  0.4 0.9   Argic  10YR 3/2    0.5 #554636</code></pre>
 <p>Now we can follow the same steps as in the previous parts to make a first plot of this extended chronosequence.</p>
 <pre class="r"><code>soil_plot&lt;-ggplot(
@@ -268,12 +268,12 @@ soil_profile &lt;- soil_profile%&gt;%
 
 soil_profile</code></pre>
 <pre><code>##    profile from  to horizon   munsell height     hex oxy
-## 1 Calcisol  0.0 0.1  Mollic  10YR 3/2    0.1 #554636  No
-## 2 Calcisol  0.1 0.4  Calcic  10YR 7/2    0.3 #BEAD98  No
-## 3 Cambisol  0.0 0.1  Mollic  10YR 3/2    0.1 #554636  No
-## 4 Cambisol  0.1 0.8  Cambic  10YR 5/2    0.7 #897866  No
-## 5  Luvisol  0.0 0.1  Mollic  10YR 1/2    0.1 #291A0A  No
-## 6  Luvisol  0.1 0.4   Albic 7.5YR 8/2    0.3 #DAC7B5  No
+## 1 Calcisol  0.0 0.2  Mollic  10YR 3/2    0.2 #554636  No
+## 2 Calcisol  0.2 0.4  Calcic  10YR 7/2    0.2 #BEAD98  No
+## 3 Cambisol  0.0 0.2  Mollic  10YR 3/2    0.2 #554636  No
+## 4 Cambisol  0.2 0.8  Cambic  10YR 5/2    0.6 #897866  No
+## 5  Luvisol  0.0 0.2  Mollic  10YR 1/2    0.2 #291A0A  No
+## 6  Luvisol  0.2 0.4   Albic 7.5YR 8/2    0.2 #DAC7B5  No
 ## 7  Luvisol  0.4 0.9   Argic  10YR 3/2    0.5 #554636 Yes</code></pre>
 <p>Now we will use the <a href="https://coolbutuseless.github.io/package/ggpattern/">{ggpattern}</a> extension from Mike FC to add a specific pattern to the horizon with oxidation marks.</p>
 <pre class="r"><code># Install {ggpattern}
