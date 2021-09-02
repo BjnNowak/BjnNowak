@@ -12,7 +12,12 @@ My teaching and research activities focus on remote sensing, soil sciences and b
 # Peer-reviewed publications
 
 * [Territorial mapping to increase soil carbon storage](https://www.tandfonline.com/doi/full/10.1080/21681376.2021.1960889?scroll=top&needAccess=true) (2021). <u>B Nowak</u>. *Regional Studies, Regional Science*.
+
+  <img src="/rsrs.jpeg" alt="" style="margin-right: 10px; min-width: 150px;">
+
   <p style="color: #5f464b; background-color: #ece4b7; font-family: Roboto; font-style: italic; padding: 2px 10px" > Better allocation of organic resources (manure...) is needed to reduce the mismatch between current soil carbon stocks and storage potential.</p>
+
+
 
 * [Estimation of winter soil cover by vegetation before spring-sown crops for mainland France using multispectral satellite imagery](https://iopscience.iop.org/article/10.1088/1748-9326/ac007c/meta) (2021). <u>B Nowak</u>, G Marliac, A Michaud. *Environmental Research Letters*.
   <p style="color: #5f464b; background-color: #ece4b7; font-family: Roboto; font-style: italic; padding: 2px 10px" > Less than half of French fields with winter soil cover before spring crops, with strong spatial variability and high influence of crop rotation (low soil cover for crops associated with arable farms, high soil cover for crops associated with livestock productions).</p>
