@@ -1,0 +1,377 @@
+---
+title: '[R] Pretty polar barplots'
+author: Benjamin Nowak
+date: '2021-08-31'
+slug: r-polar-barplots
+categories:
+  - ['R']
+tags:
+  - 'barplot'
+  - 'polar'
+  - 'TidyTuesday'
+summary: 'Polar barplots can be an alternative to standard barplots but several steps are required to obtain a nice layout. In this post, we will see how to customize such barplots.'
+---
+
+Polar barplots can be an alternative to standard barplots but several steps are required to obtain a nice layout. The R Graph Gallery by Yan Holtz has a [comprehensive tutorial](https://www.r-graph-gallery.com/circular-barplot.html) for this. We will see how this tutorial can be adapted and applied to a specific dataset.
+
+# 1. Get the data
+
+For this example, we will use the data of week 36 (year 2021) of [Tidy Tuesday](https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-08-31/readme.md), about bird baths [(Cleary et *al.*, 2016)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0150899#abstract0). 
+
+```{r, message=FALSE, warning=FALSE}
+# Load data 
+birds<- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-08-31/bird_baths.csv')
+
+head(birds)
+
+```
+
+# 2. Polar barplot with one variable
+
+First, we will produce a barplot with a single variable: number of sights for the 10 most common bird species in Australia. Let's start by extracting the data for the ten most common species.
+
+```{r, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+
+one<-birds%>%
+  group_by(bird_type)%>%
+  summarise(tot=sum(bird_count))%>%
+  arrange(tot)%>%      # Sort by total number of sights
+  tail(10)%>%          # Select only last 10 rows
+  ungroup()
+
+one
+
+```
+
+We are now ready to make a "standard" barplot.
+
+```{r, message=FALSE, warning=FALSE}
+
+p1<-ggplot()+
+  geom_bar(
+    data=one,
+    aes(x=fct_reorder(bird_type,tot), y=tot),
+    stat="identity",fill="indianred")+
+  theme_minimal()
+
+p1
+
+```
+
+To convert cartesian coordinates to polar coordinates, we use *coord_polar()* (you may find [here](https://bjnnowak.netlify.app/2021/07/26/r-plotting-soil-textures-example-of-water-storage-capacity/) another tutorial on how to convert cartesian coordinates to ternary diagrams with *coord_tern()*).
+
+```{r, message=FALSE, warning=FALSE}
+
+p1<-p1+
+  coord_polar(start=0)
+
+p1
+
+```
+
+We quickly obtain a circular barplot, but its layout could be improved. We will now customize this plot. 
+First, let's add some space before the first element. To do so, we will create some blank lines in our dataset.
+
+```{r, message=FALSE, warning=FALSE}
+
+one<-one %>% 
+  add_row(
+    tot=c(0,0),  # Two blank lines with 0 bird sights
+    .before = 1  # Add at the beginning of the data frame
+  )%>%
+  # Create new column based on row numbers
+  # that will be used as x-axis
+  mutate(
+    id = row_number()
+  )
+
+```
+
+We may now create a new polar barplot.
+
+```{r, message=FALSE, warning=FALSE}
+
+p1_bis<-ggplot()+
+  geom_bar(
+    data=one,
+    aes(x=id, y=tot),   # Use id as x-axis
+    stat="identity",fill="indianred")+
+  # Add space in/out the circle
+  ylim(
+    -max(one$tot)/2,
+    max(one$tot)*1.5
+  )+
+  coord_polar(start=0)+
+  theme_minimal()+
+  # Hide former theme elements
+  theme(                          
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    panel.grid = element_blank()
+  )
+
+p1_bis
+
+```
+
+We will now replace the previous labels with a legend more appropriate to the new layout. The most clever part of the tutorial of the R Graph Gallery is how to add labels to [polar barplots](https://www.r-graph-gallery.com/index.html). 
+
+To do so, we will add a new column, **angle**, to our data frame to specify the angles of the labels. The main idea is that the first item (North) must have a 90 degrees angle. This angle will then decrease clockwise (0 in the East for example).
+
+```{r, message=FALSE, warning=FALSE}
+
+one<-one%>%
+  mutate(
+    # Use (id-0.5), not just id, to center label on each item
+    angle=90-360*(id-0.5)/max(id)
+  )
+
+one
+
+```
+
+We may now add the labels on the plot with *geom_text()*.
+
+```{r, message=FALSE, warning=FALSE}
+
+p1_bis+
+  geom_text(
+    data=one,
+    aes(x=id,y=tot+5,label=bird_type,angle=angle),
+    hjust=0     # Left align
+  )
+  
+
+```
+
+This works well for the right part of the graph, but some modifications are still required for the left part. To make these labels more readable, we will flip them by 180 degrees. But this also implies to modify the adjustment of the text, so that the labels are well directed towards the outside of the graph. We will specify this by adding a new column: **hjust**. 
+
+```{r, message=FALSE, warning=FALSE}
+
+one<-one%>%
+  # Right align on the left,
+  # left align on the right
+  mutate(
+    hjust=case_when(
+      angle<=-90~1,
+      TRUE~0
+    )
+  )%>%
+  # Flip left side labels
+  mutate(
+    angle=case_when(
+      angle<=-90~angle+180,
+      TRUE~angle
+    )
+  )
+
+one
+
+```
+
+```{r, message=FALSE, warning=FALSE}
+
+p1_bis<-p1_bis+
+  geom_text(
+    data=one,
+    aes(x=id,y=tot+10,label=bird_type,angle=angle,hjust=hjust),
+    size=2.5
+  )
+
+p1_bis
+  
+
+```
+
+We also have to add the y-axis manually.
+
+```{r, message=FALSE, warning=FALSE}
+
+grid_manual <- data.frame(
+  x = c(1.5,1.5),
+  xend = c(2.4,2.4),
+  y = c(200,400)
+  
+)
+
+p1_bis<-p1_bis+
+  geom_segment(
+    data=grid_manual,
+    aes(x=x,xend=xend,y=y,yend=y),
+    col="grey50"
+  )+
+  geom_text(
+    data=grid_manual,
+    aes(x=1,y=y,label=y),
+    size=2.5,col="grey50",
+    hjust=0
+  )+
+  annotate(
+    geom='text',
+    x=1,y=600,
+    label="Number of sights",
+    size=2.5,col="grey50",
+    hjust=0
+  )
+
+p1_bis
+
+```
+
+We can now finish this graphic by adding a title with the {cowplot} extension.
+
+```{r, message=FALSE, warning=FALSE, dpi=600, fig.width=7, fig.height=7}
+
+library(cowplot)
+
+ggdraw() +
+  draw_plot(p1_bis, x = 0, y = 0, width = 1, height = 1)+
+  draw_text(
+    text = "Ten most common\nbird species in Australia",  
+    size = 13,
+    hjust=0,color="#343a40",
+    x = 0.5, y = 0.9)
+
+```
+
+# 3. Polar barplot with two variables
+
+The dataset also contains information about the type of landscape where the birds were sighted (urban or rural). We will now add this information on the polar barplot. We will start by creating a data frame with the number of sights per bird types and per landscape for the 10 most common bird species.
+
+```{r, message=FALSE, warning=FALSE}
+
+# Get the name of the 10 most common birds
+top <- birds%>%
+  group_by(bird_type)%>%
+  summarise(tot=sum(bird_count))%>%
+  arrange(tot)%>%     
+  tail(10)%>%          
+  pull(bird_type)
+
+# Data frame with number of sights per bird type AND landscape
+two <- birds%>%
+  filter(bird_type %in% top)%>%
+  group_by(bird_type,urban_rural)%>%
+  summarise(tot_cat=sum(bird_count))%>%
+  ungroup()%>%
+  # Change name of NA to 'Unknown'
+  mutate(urban_rural=case_when(
+    is.na(urban_rural)~'Unknown',
+    TRUE~urban_rural
+  ))
+
+two
+
+```
+
+Then we will use the previously created data frame (named **one**) to specify the position and text adjustment of the labels, merging it with our new data frame (named **two**).
+
+```{r, message=FALSE, warning=FALSE}
+
+two<-two%>%
+  left_join(one, by="bird_type")%>%
+  # Add two empty rows at the beginning of the data frame
+  add_row(
+    tot_cat=c(0,0),
+    id=c(1,2),       # Specify id
+    .before = 1
+  )
+
+two
+
+```
+
+We are now ready to make the plot.
+
+```{r, message=FALSE, warning=FALSE, dpi=600, fig.width=7, fig.height=7}
+
+p2<-ggplot()+
+  # Polar barplot, with fill attribute in aes()
+  geom_bar(
+    data=two,
+    aes(x=id, y=tot_cat, fill=urban_rural), 
+    stat="identity")+
+  ylim(
+    -max(one$tot)/2,
+    max(one$tot)*1.5
+  )+
+  coord_polar(start=0)+
+  
+  # Specify fill values
+  scale_fill_manual(values=c("indianred4","indianred2","rosybrown3"))+
+  guides(fill=FALSE)+
+  
+  # Hide theme elements
+  theme_minimal()+
+  theme(                          
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    panel.grid = element_blank()
+  )+
+  
+  # Create new legend
+  # Select only one category (Urban for example) for bird lables
+  geom_text(
+    data=filter(two,urban_rural=="Urban"),
+    aes(x=id,y=tot+10,label=bird_type,angle=angle,hjust=hjust),
+    size=2.5
+  )+
+  # Add landscape legend
+  annotate(
+    geom='text',x=0.5,y=560,
+    label="Rural",size=2.5,col="indianred4",
+    hjust=0
+  )+
+  annotate(
+    geom='text',x=0.5,y=400,
+    label="Urban",size=2.5,col="indianred2",
+    hjust=0
+  )+
+  annotate(
+    geom='text',x=0.5,y=150,
+    label="Unknown",size=2.5,col="rosybrown3",
+    hjust=0
+  )+
+  # Add y-axis
+  geom_segment(
+    data=grid_manual,
+    aes(x=2,xend=2.4,y=y,yend=y),
+    col="grey50"
+  )+
+  geom_text(
+    data=grid_manual,
+    aes(x=1.5,y=y,label=y),
+    size=2.5,col="grey50",
+    hjust=0
+  )+
+  annotate(
+    geom='text',
+    x=1.5,y=600,
+    label="Number of sights",
+    size=2.5,col="grey50",
+    hjust=0
+  )
+
+ggdraw() +
+  draw_plot(p2, x = 0, y = 0, width = 1, height = 1)+
+  draw_text(
+    text = "Ten most common\nbird species in Australia",  
+    size = 13,
+    hjust=0,color="#343a40",
+    x = 0.5, y = 0.9)
+
+```
+
+# 4. More customization
+
+We will not go into details here but you may manually add subcategories on the inner circle. You may also use other arguments of the *aes()* to add more informations on the plot. In the example below, I used *color* for bird species and *alpha* for landscape (urban or rural). The code for this plot is available [here](https://github.com/BjnNowak/TidyTuesday/blob/main/SC_Birds_clean.R).
+
+![](/bird.png){width=100%}
+
+# References
+
+- Cleary G.P. *et al.*, **2016** [Avian Assemblages at Bird Baths: A Comparison of Urban and Rural Bird Baths in Australia](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0150899#abstract0)
+- Holtz Y., [Circular barplot](https://www.r-graph-gallery.com/circular-barplot.html)
+

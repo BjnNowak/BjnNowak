@@ -1,0 +1,379 @@
+---
+title: '[R] Pretty polar barplots'
+author: Benjamin Nowak
+date: '2021-08-31'
+slug: r-polar-barplots
+categories:
+  - ['R']
+tags:
+  - 'barplot'
+  - 'polar'
+  - 'TidyTuesday'
+summary: 'Polar barplots can be an alternative to standard barplots but several steps are required to obtain a nice layout. In this post, we will see how to customize such barplots.'
+---
+
+
+
+<p>Polar barplots can be an alternative to standard barplots but several steps are required to obtain a nice layout. The R Graph Gallery by Yan Holtz has a <a href="https://www.r-graph-gallery.com/circular-barplot.html">comprehensive tutorial</a> for this. We will see how this tutorial can be adapted and applied to a specific dataset.</p>
+<div id="get-the-data" class="section level1">
+<h1>1. Get the data</h1>
+<p>For this example, we will use the data of week 36 (year 2021) of <a href="https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-08-31/readme.md">Tidy Tuesday</a>, about bird baths <a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0150899#abstract0">(Cleary et <em>al.</em>, 2016)</a>.</p>
+<pre class="r"><code># Load data 
+birds&lt;- readr::read_csv(&#39;https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-08-31/bird_baths.csv&#39;)
+
+head(birds)</code></pre>
+<pre><code>## # A tibble: 6 x 5
+##   survey_year urban_rural bioregions            bird_type             bird_count
+##         &lt;dbl&gt; &lt;chr&gt;       &lt;chr&gt;                 &lt;chr&gt;                      &lt;dbl&gt;
+## 1        2014 Urban       South Eastern Queens~ Bassian Thrush                 0
+## 2        2014 Urban       South Eastern Queens~ Chestnut-breasted Ma~          0
+## 3        2014 Urban       South Eastern Queens~ Wild Duck                      0
+## 4        2014 Urban       South Eastern Queens~ Willie Wagtail                 0
+## 5        2014 Urban       South Eastern Queens~ Regent Bowerbird               0
+## 6        2014 Urban       South Eastern Queens~ Rufous Fantail                 0</code></pre>
+</div>
+<div id="polar-barplot-with-one-variable" class="section level1">
+<h1>2. Polar barplot with one variable</h1>
+<p>First, we will produce a barplot with a single variable: number of sights for the 10 most common bird species in Australia. Let’s start by extracting the data for the ten most common species.</p>
+<pre class="r"><code>library(tidyverse)
+
+one&lt;-birds%&gt;%
+  group_by(bird_type)%&gt;%
+  summarise(tot=sum(bird_count))%&gt;%
+  arrange(tot)%&gt;%      # Sort by total number of sights
+  tail(10)%&gt;%          # Select only last 10 rows
+  ungroup()
+
+one</code></pre>
+<pre><code>## # A tibble: 10 x 2
+##    bird_type           tot
+##    &lt;chr&gt;             &lt;dbl&gt;
+##  1 Spotted Dove        302
+##  2 Eastern Spinebill   306
+##  3 Crimson Rosella     310
+##  4 Pied Currawong      314
+##  5 Magpie-lark         320
+##  6 Superb Fairy-wren   340
+##  7 Red Wattlebird      342
+##  8 Rainbow Lorikeet    470
+##  9 Australian Magpie   524
+## 10 Noisy Miner         584</code></pre>
+<p>We are now ready to make a “standard” barplot.</p>
+<pre class="r"><code>p1&lt;-ggplot()+
+  geom_bar(
+    data=one,
+    aes(x=fct_reorder(bird_type,tot), y=tot),
+    stat=&quot;identity&quot;,fill=&quot;indianred&quot;)+
+  theme_minimal()
+
+p1</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>To convert cartesian coordinates to polar coordinates, we use <em>coord_polar()</em> (you may find <a href="https://bjnnowak.netlify.app/2021/07/26/r-plotting-soil-textures-example-of-water-storage-capacity/">here</a> another tutorial on how to convert cartesian coordinates to ternary diagrams with <em>coord_tern()</em>).</p>
+<pre class="r"><code>p1&lt;-p1+
+  coord_polar(start=0)
+
+p1</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>We quickly obtain a circular barplot, but its layout could be improved. We will now customize this plot.
+First, let’s add some space before the first element. To do so, we will create some blank lines in our dataset.</p>
+<pre class="r"><code>one&lt;-one %&gt;% 
+  add_row(
+    tot=c(0,0),  # Two blank lines with 0 bird sights
+    .before = 1  # Add at the beginning of the data frame
+  )%&gt;%
+  # Create new column based on row numbers
+  # that will be used as x-axis
+  mutate(
+    id = row_number()
+  )</code></pre>
+<p>We may now create a new polar barplot.</p>
+<pre class="r"><code>p1_bis&lt;-ggplot()+
+  geom_bar(
+    data=one,
+    aes(x=id, y=tot),   # Use id as x-axis
+    stat=&quot;identity&quot;,fill=&quot;indianred&quot;)+
+  # Add space in/out the circle
+  ylim(
+    -max(one$tot)/2,
+    max(one$tot)*1.5
+  )+
+  coord_polar(start=0)+
+  theme_minimal()+
+  # Hide former theme elements
+  theme(                          
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    panel.grid = element_blank()
+  )
+
+p1_bis</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>We will now replace the previous labels with a legend more appropriate to the new layout. The most clever part of the tutorial of the R Graph Gallery is how to add labels to <a href="https://www.r-graph-gallery.com/index.html">polar barplots</a>.</p>
+<p>To do so, we will add a new column, <strong>angle</strong>, to our data frame to specify the angles of the labels. The main idea is that the first item (North) must have a 90 degrees angle. This angle will then decrease clockwise (0 in the East for example).</p>
+<pre class="r"><code>one&lt;-one%&gt;%
+  mutate(
+    # Use (id-0.5), not just id, to center label on each item
+    angle=90-360*(id-0.5)/max(id)
+  )
+
+one</code></pre>
+<pre><code>## # A tibble: 12 x 4
+##    bird_type           tot    id angle
+##    &lt;chr&gt;             &lt;dbl&gt; &lt;int&gt; &lt;dbl&gt;
+##  1 &lt;NA&gt;                  0     1    75
+##  2 &lt;NA&gt;                  0     2    45
+##  3 Spotted Dove        302     3    15
+##  4 Eastern Spinebill   306     4   -15
+##  5 Crimson Rosella     310     5   -45
+##  6 Pied Currawong      314     6   -75
+##  7 Magpie-lark         320     7  -105
+##  8 Superb Fairy-wren   340     8  -135
+##  9 Red Wattlebird      342     9  -165
+## 10 Rainbow Lorikeet    470    10  -195
+## 11 Australian Magpie   524    11  -225
+## 12 Noisy Miner         584    12  -255</code></pre>
+<p>We may now add the labels on the plot with <em>geom_text()</em>.</p>
+<pre class="r"><code>p1_bis+
+  geom_text(
+    data=one,
+    aes(x=id,y=tot+5,label=bird_type,angle=angle),
+    hjust=0     # Left align
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<p>This works well for the right part of the graph, but some modifications are still required for the left part. To make these labels more readable, we will flip them by 180 degrees. But this also implies to modify the adjustment of the text, so that the labels are well directed towards the outside of the graph. We will specify this by adding a new column: <strong>hjust</strong>.</p>
+<pre class="r"><code>one&lt;-one%&gt;%
+  # Right align on the left,
+  # left align on the right
+  mutate(
+    hjust=case_when(
+      angle&lt;=-90~1,
+      TRUE~0
+    )
+  )%&gt;%
+  # Flip left side labels
+  mutate(
+    angle=case_when(
+      angle&lt;=-90~angle+180,
+      TRUE~angle
+    )
+  )
+
+one</code></pre>
+<pre><code>## # A tibble: 12 x 5
+##    bird_type           tot    id angle hjust
+##    &lt;chr&gt;             &lt;dbl&gt; &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1 &lt;NA&gt;                  0     1    75     0
+##  2 &lt;NA&gt;                  0     2    45     0
+##  3 Spotted Dove        302     3    15     0
+##  4 Eastern Spinebill   306     4   -15     0
+##  5 Crimson Rosella     310     5   -45     0
+##  6 Pied Currawong      314     6   -75     0
+##  7 Magpie-lark         320     7    75     1
+##  8 Superb Fairy-wren   340     8    45     1
+##  9 Red Wattlebird      342     9    15     1
+## 10 Rainbow Lorikeet    470    10   -15     1
+## 11 Australian Magpie   524    11   -45     1
+## 12 Noisy Miner         584    12   -75     1</code></pre>
+<pre class="r"><code>p1_bis&lt;-p1_bis+
+  geom_text(
+    data=one,
+    aes(x=id,y=tot+10,label=bird_type,angle=angle,hjust=hjust),
+    size=2.5
+  )
+
+p1_bis</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p>We also have to add the y-axis manually.</p>
+<pre class="r"><code>grid_manual &lt;- data.frame(
+  x = c(1.5,1.5),
+  xend = c(2.4,2.4),
+  y = c(200,400)
+  
+)
+
+p1_bis&lt;-p1_bis+
+  geom_segment(
+    data=grid_manual,
+    aes(x=x,xend=xend,y=y,yend=y),
+    col=&quot;grey50&quot;
+  )+
+  geom_text(
+    data=grid_manual,
+    aes(x=1,y=y,label=y),
+    size=2.5,col=&quot;grey50&quot;,
+    hjust=0
+  )+
+  annotate(
+    geom=&#39;text&#39;,
+    x=1,y=600,
+    label=&quot;Number of sights&quot;,
+    size=2.5,col=&quot;grey50&quot;,
+    hjust=0
+  )
+
+p1_bis</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p>We can now finish this graphic by adding a title with the {cowplot} extension.</p>
+<pre class="r"><code>library(cowplot)
+
+ggdraw() +
+  draw_plot(p1_bis, x = 0, y = 0, width = 1, height = 1)+
+  draw_text(
+    text = &quot;Ten most common\nbird species in Australia&quot;,  
+    size = 13,
+    hjust=0,color=&quot;#343a40&quot;,
+    x = 0.5, y = 0.9)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-12-1.png" width="4200" /></p>
+</div>
+<div id="polar-barplot-with-two-variables" class="section level1">
+<h1>3. Polar barplot with two variables</h1>
+<p>The dataset also contains information about the type of landscape where the birds were sighted (urban or rural). We will now add this information on the polar barplot. We will start by creating a data frame with the number of sights per bird types and per landscape for the 10 most common bird species.</p>
+<pre class="r"><code># Get the name of the 10 most common birds
+top &lt;- birds%&gt;%
+  group_by(bird_type)%&gt;%
+  summarise(tot=sum(bird_count))%&gt;%
+  arrange(tot)%&gt;%     
+  tail(10)%&gt;%          
+  pull(bird_type)
+
+# Data frame with number of sights per bird type AND landscape
+two &lt;- birds%&gt;%
+  filter(bird_type %in% top)%&gt;%
+  group_by(bird_type,urban_rural)%&gt;%
+  summarise(tot_cat=sum(bird_count))%&gt;%
+  ungroup()%&gt;%
+  # Change name of NA to &#39;Unknown&#39;
+  mutate(urban_rural=case_when(
+    is.na(urban_rural)~&#39;Unknown&#39;,
+    TRUE~urban_rural
+  ))
+
+two</code></pre>
+<pre><code>## # A tibble: 30 x 3
+##    bird_type         urban_rural tot_cat
+##    &lt;chr&gt;             &lt;chr&gt;         &lt;dbl&gt;
+##  1 Australian Magpie Rural            76
+##  2 Australian Magpie Urban           186
+##  3 Australian Magpie Unknown         262
+##  4 Crimson Rosella   Rural            66
+##  5 Crimson Rosella   Urban            89
+##  6 Crimson Rosella   Unknown         155
+##  7 Eastern Spinebill Rural            87
+##  8 Eastern Spinebill Urban            66
+##  9 Eastern Spinebill Unknown         153
+## 10 Magpie-lark       Rural            33
+## # ... with 20 more rows</code></pre>
+<p>Then we will use the previously created data frame (named <strong>one</strong>) to specify the position and text adjustment of the labels, merging it with our new data frame (named <strong>two</strong>).</p>
+<pre class="r"><code>two&lt;-two%&gt;%
+  left_join(one, by=&quot;bird_type&quot;)%&gt;%
+  # Add two empty rows at the beginning of the data frame
+  add_row(
+    tot_cat=c(0,0),
+    id=c(1,2),       # Specify id
+    .before = 1
+  )
+
+two</code></pre>
+<pre><code>## # A tibble: 32 x 7
+##    bird_type         urban_rural tot_cat   tot    id angle hjust
+##    &lt;chr&gt;             &lt;chr&gt;         &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1 &lt;NA&gt;              &lt;NA&gt;              0    NA     1    NA    NA
+##  2 &lt;NA&gt;              &lt;NA&gt;              0    NA     2    NA    NA
+##  3 Australian Magpie Rural            76   524    11   -45     1
+##  4 Australian Magpie Urban           186   524    11   -45     1
+##  5 Australian Magpie Unknown         262   524    11   -45     1
+##  6 Crimson Rosella   Rural            66   310     5   -45     0
+##  7 Crimson Rosella   Urban            89   310     5   -45     0
+##  8 Crimson Rosella   Unknown         155   310     5   -45     0
+##  9 Eastern Spinebill Rural            87   306     4   -15     0
+## 10 Eastern Spinebill Urban            66   306     4   -15     0
+## # ... with 22 more rows</code></pre>
+<p>We are now ready to make the plot.</p>
+<pre class="r"><code>p2&lt;-ggplot()+
+  # Polar barplot, with fill attribute in aes()
+  geom_bar(
+    data=two,
+    aes(x=id, y=tot_cat, fill=urban_rural), 
+    stat=&quot;identity&quot;)+
+  ylim(
+    -max(one$tot)/2,
+    max(one$tot)*1.5
+  )+
+  coord_polar(start=0)+
+  
+  # Specify fill values
+  scale_fill_manual(values=c(&quot;indianred4&quot;,&quot;indianred2&quot;,&quot;rosybrown3&quot;))+
+  guides(fill=FALSE)+
+  
+  # Hide theme elements
+  theme_minimal()+
+  theme(                          
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    panel.grid = element_blank()
+  )+
+  
+  # Create new legend
+  # Select only one category (Urban for example) for bird lables
+  geom_text(
+    data=filter(two,urban_rural==&quot;Urban&quot;),
+    aes(x=id,y=tot+10,label=bird_type,angle=angle,hjust=hjust),
+    size=2.5
+  )+
+  # Add landscape legend
+  annotate(
+    geom=&#39;text&#39;,x=0.5,y=560,
+    label=&quot;Rural&quot;,size=2.5,col=&quot;indianred4&quot;,
+    hjust=0
+  )+
+  annotate(
+    geom=&#39;text&#39;,x=0.5,y=400,
+    label=&quot;Urban&quot;,size=2.5,col=&quot;indianred2&quot;,
+    hjust=0
+  )+
+  annotate(
+    geom=&#39;text&#39;,x=0.5,y=150,
+    label=&quot;Unknown&quot;,size=2.5,col=&quot;rosybrown3&quot;,
+    hjust=0
+  )+
+  # Add y-axis
+  geom_segment(
+    data=grid_manual,
+    aes(x=2,xend=2.4,y=y,yend=y),
+    col=&quot;grey50&quot;
+  )+
+  geom_text(
+    data=grid_manual,
+    aes(x=1.5,y=y,label=y),
+    size=2.5,col=&quot;grey50&quot;,
+    hjust=0
+  )+
+  annotate(
+    geom=&#39;text&#39;,
+    x=1.5,y=600,
+    label=&quot;Number of sights&quot;,
+    size=2.5,col=&quot;grey50&quot;,
+    hjust=0
+  )
+
+ggdraw() +
+  draw_plot(p2, x = 0, y = 0, width = 1, height = 1)+
+  draw_text(
+    text = &quot;Ten most common\nbird species in Australia&quot;,  
+    size = 13,
+    hjust=0,color=&quot;#343a40&quot;,
+    x = 0.5, y = 0.9)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-15-1.png" width="4200" /></p>
+</div>
+<div id="more-customization" class="section level1">
+<h1>4. More customization</h1>
+<p>We will not go into details here but you may manually add subcategories on the inner circle. You may also use other arguments of the <em>aes()</em> to add more informations on the plot. In the example below, I used <em>color</em> for bird species and <em>alpha</em> for landscape (urban or rural). The code for this plot is available <a href="https://github.com/BjnNowak/TidyTuesday/blob/main/SC_Birds_clean.R">here</a>.</p>
+<p><img src="/bird.png" style="width:100.0%" /></p>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<ul>
+<li>Cleary G.P. <em>et al.</em>, <strong>2016</strong> <a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0150899#abstract0">Avian Assemblages at Bird Baths: A Comparison of Urban and Rural Bird Baths in Australia</a></li>
+<li>Holtz Y., <a href="https://www.r-graph-gallery.com/circular-barplot.html">Circular barplot</a></li>
+</ul>
+</div>
