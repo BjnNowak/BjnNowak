@@ -15,7 +15,7 @@ A few months ago we published an article on [winter soil cover before spring cro
 
 After some basic elements on the rationale behind NDVI, this tutorial shows:
 
-* **(i)** how to download the Sentinel-2 images provided free of charge by the European Spatial Agency (ESA) 
+* **(i)** how to download the Sentinel-2 images provided free of charge by the European Space Agency (ESA) 
 * **(ii)** how to create a NDVI map with the open source software QGIS from these data.
 
 # 1. Rationale behind NDVI computation
