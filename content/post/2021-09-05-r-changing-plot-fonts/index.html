@@ -1,0 +1,162 @@
+---
+title: '[R] Text customization with {ggplot2}'
+author: Benjamin Nowak
+date: '2021-09-05'
+slug: r-changing-plot-fonts
+categories:
+  - ['R']
+tags:
+  - 'ggplot2'
+  - 'TidyTuesday'
+  - 'customization'
+output:
+  blogdown::html_page:
+    toc: false
+summary: 'Text customization is an important step in the creation of a graph. In this post, we will see how we can change text fonts with {showtext} and add more changes with {ggtext}.'
+---
+
+
+
+<p>Text customization is an important step in the creation of a graph. In this post, we will see how we can change text fonts with {showtext} and add more changes with {ggtext}. We will then apply this to a graph created in a <a href="https://bjnnowak.netlify.app/2021/08/02/r-getting-started-with-ggplot2-with-an-overview-of-nitrogen-use-efficiency/">previous post</a>: the introduction to {ggplot2} with the evolution of nitrogen use efficiency.</p>
+<div id="change-fonts-with-showtext" class="section level1">
+<h1>1. Change fonts with {showtext}</h1>
+<p>With <a href="https://cran.rstudio.com/web/packages/showtext/vignettes/introduction.html">{showtext}</a> extension, you can use fonts from the Google fonts library (<a href="https://fonts.google.com/">https://fonts.google.com/</a>).</p>
+<p>You can start by exploring this webpage to find a font that suits you. <a href="https://fonts.google.com/specimen/Playfair+Display?query=playfair+display"><em>Playfair Display</em></a> is a font that I often use in my plots. If you want more than one font (for example, one for the title, one for the rest of the plot), Google fonts has a <a href="https://fonts.google.com/specimen/Playfair+Display?query=playfair+display#pairings">“Pairings” tab</a>, which shows the most popular pairings with a specific font. Here, we will use <em>Nunito</em> in addition to <em>Playfair Display</em>.</p>
+<p>We are now ready to load the selected fonts into R with <em>font_add_google()</em>.</p>
+<pre class="r"><code># Load {showtext}
+library(showtext)
+
+# Add Google fonts
+font_add_google(
+  name = &quot;Playfair Display&quot;,  # Name in fonts.google.com
+  family = &quot;playfair&quot;         # Name in your R session
+)
+font_add_google(&quot;Nunito&quot;, &quot;nunito&quot;)
+
+# Automatically use {showtext} for plots
+showtext_auto()</code></pre>
+<p>Unlike {extrafont}, {showtext} allows you to use the fonts without installing them on your computer. The above steps must therefore be repeated for each new session.</p>
+<p>We may now use these new fonts in plots. With {ggplot2}, you can select font in <em>theme()</em>, with the <em>family</em> argument.</p>
+<pre class="r"><code># Load {ggplot2} (inside {tidyverse})
+library(tidyverse)
+
+# Make plot
+ggplot()+
+  labs(
+    title=&quot;This is a title in Playfair Display&quot;,
+    subtitle =&quot;This is a subtitle in Nunito&quot;)+
+  coord_fixed(0.25)+
+  theme(
+    # Select title font
+    plot.title = element_text(family=&quot;playfair&quot;,size=25),
+    # Select subtitle font
+    plot.subtitle = element_text(family=&quot;nunito&quot;,size=20)
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-1.png" width="4200" /></p>
+</div>
+<div id="multiple-fonts-in-one-text-with-ggtext" class="section level1">
+<h1>2. Multiple fonts in one text with {ggtext}</h1>
+<p>With the {ggtext} extension, you can use HTML tags and CSS properties to add more customizations to your text.</p>
+<p>Without going into the details of HTML and CSS, we will see an example of the use of <em>i</em> and <em>b</em> tags to change a text from italic to bold, and <em>font-family</em> and <em>color</em> properties to specify text fonts and colors.
+We will start by creating a table with title and subtitle labels written with HTML syntax.</p>
+<pre class="r"><code># Load extensions
+library(ggtext)
+library(glue)
+
+# Table with labels with HTML syntax
+data &lt;- tibble(
+  text = c(&quot;Playfair Display&quot;,&quot;Nunito&quot;),
+  family = c(&quot;playfair&quot;,&quot;nunito&quot;)
+  )%&gt;%
+  mutate(
+    title = glue(&quot;&lt;i&gt;This is a text in&lt;/i&gt; &lt;b style=&#39;font-family: {family}; color: red&#39;&gt;{text}&lt;/b&gt; &quot;)
+  )
+
+# Show title with HTML syntax
+data$title[1]</code></pre>
+<pre><code>## &lt;i&gt;This is a text in&lt;/i&gt; &lt;b style=&#39;font-family: playfair; color: red&#39;&gt;Playfair Display&lt;/b&gt;</code></pre>
+<p>To use these labels in one <em>ggplot()</em>, in the <em>theme()</em>, we have to change <em>element_text()</em> to <em>element_markdown()</em>.</p>
+<pre class="r"><code>ggplot()+
+  labs(
+    title=data$title[1],
+    subtitle =data$title[2]
+  )+
+  coord_fixed(0.25)+
+  theme(
+    # Specify element_markdown()
+    plot.title = element_markdown(size=30),
+    plot.subtitle = element_markdown(size=25)
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="4200" /></p>
+</div>
+<div id="example-with-one-plot" class="section level1">
+<h1>3. Example with one plot</h1>
+<p>To finish, we are going to illustrate the possibilities of text customization by editing graph made in a <a href="https://bjnnowak.netlify.app/2021/08/02/r-getting-started-with-ggplot2-with-an-overview-of-nitrogen-use-efficiency/">previous post</a>: the introduction to {ggplot2} with the evolution of nitrogen use efficiency.</p>
+<p>Data preparation is as follows:</p>
+<pre class="r"><code># Import data (only table of interest: yield and fertilizer)
+fertilizer &lt;- readr::read_csv(&#39;https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-01/cereal_crop_yield_vs_fertilizer_application.csv&#39;)
+
+# Vector for country selection
+countries &lt;- c(
+  &quot;France&quot;,&quot;United States&quot;,&quot;Brazil&quot;,
+  &quot;China&quot;,&quot;India&quot;,&quot;Australia&quot;
+)
+
+# Data cleaning and preparation
+ferti_clean&lt;-fertilizer%&gt;%
+  filter(complete.cases(.))%&gt;%
+  rename(
+    Yield = &#39;Cereal yield (tonnes per hectare)&#39;,
+    Nitrogen = &#39;Nitrogen fertilizer use (kilograms per hectare)&#39;
+  )%&gt;%
+  filter(Entity%in%countries)%&gt;%
+  mutate(Entity=case_when(
+    Entity==&quot;United States&quot;~&quot;USA&quot;,
+    TRUE~Entity
+  ))%&gt;%
+  mutate(
+    Efficiency = Yield/Nitrogen     
+  )</code></pre>
+<p>We will now load additional fonts for this plot.</p>
+<pre class="r"><code># Load additional fonts
+font_add_google(&quot;Open Sans&quot;, &quot;open&quot;)
+font_add_google(&quot;Oswald&quot;, &quot;oswald&quot;)
+font_add_google(&quot;Cabin&quot;, &quot;cabin&quot;)
+font_add_google(&quot;Acme&quot;, &quot;acme&quot;)</code></pre>
+<p>Finally we can produce our new plot.</p>
+<pre class="r"><code>example &lt;- ggplot(
+  data=ferti_clean,
+  aes(x=fct_reorder(Entity,-Efficiency),y=Efficiency))+
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(aes(color=Year), size=1.5)+
+  scale_color_gradient(low = &quot;#a9d6e5&quot;, high = &quot;#012a4a&quot;)+
+  scale_y_continuous(breaks=c(0.03,0.06,0.09,0.12))+
+  labs(
+    title=&quot;&lt;span&gt;Comparison of Nitrogen Use Efficiency&lt;/span&gt; &lt;span style=&#39;color: grey&#39;&gt;(NUE)&lt;/span&gt;&quot;,
+    subtitle=&quot;&lt;span&gt;Each dot represents one year,  from &lt;/span&gt;&lt;b style=&#39;color: #a9d6e5&#39;&gt; 2002 &lt;/b&gt;&lt;span&gt; to &lt;/span&gt;&lt;b style=&#39;color: #012a4a&#39;&gt; 2017 &lt;/b&gt;&quot;,
+    caption=&quot;&lt;b&gt;Data: &lt;/b&gt;&lt;span&gt; Our World in Data &lt;/span&gt;&quot;, 
+    x=&quot;&quot;,
+    y=&quot;&lt;span style=&#39;color: #2F4F4F&#39;&gt;NUE&lt;/span&gt;&lt;br&gt;&lt;span style=&#39;color: grey&#39;&gt;(t of cereals per kgN)&lt;/span&gt;&quot;
+  )+
+  guides(color=FALSE)+
+  theme_minimal()+
+  theme(
+    plot.title = element_markdown(family=&quot;oswald&quot;,size=20),
+    plot.subtitle = element_markdown(family = &quot;cabin&quot;,size=15),
+    axis.text.x = element_text(family=&quot;acme&quot;,size=13,angle=45,hjust=1, color=&#39;#2F4F4F&#39;),
+    axis.text.y = element_text(family=&quot;open&quot;,size=11,angle=90,hjust=0.5, color=&#39;#2F4F4F&#39;),
+    axis.title.x = element_text(family=&quot;cabin&quot;,size=13),
+    axis.title.y = element_markdown(family=&quot;cabin&quot;,size=13),
+    plot.caption = element_markdown(family=&quot;open&quot;, size=10)
+  )
+
+example</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="4200" /></p>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<ul>
+<li>Yixuan Qiu <a href="https://cran.rstudio.com/web/packages/showtext/vignettes/introduction.html">showtext: Using Fonts More Easily in R Graphs</a></li>
+<li>Claus Wilke <a href="https://github.com/wilkelab/ggtext">ggtext: Improved text rendering support for ggplot2</a></li>
+</ul>
+</div>
