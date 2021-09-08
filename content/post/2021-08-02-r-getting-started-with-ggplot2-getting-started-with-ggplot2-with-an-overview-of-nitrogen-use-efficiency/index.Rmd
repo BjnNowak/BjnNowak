@@ -8,6 +8,7 @@ categories:
 tags:
   - 'ggplot2'
   - 'nitrogen'
+  - 'TidyTuesday'
 output:
   blogdown::html_page:
     toc: false
@@ -406,6 +407,8 @@ third
 ```
 
 As can be seen on this plot, there is a high variability of nitrogen use efficiency between countries.
+
+In a next post, we will learn how to customize text in [{ggplot2}](https://bjnnowak.netlify.app/2021/09/05/r-changing-plot-fonts/).
 
 ## 3.2. Highlighting one country
 
