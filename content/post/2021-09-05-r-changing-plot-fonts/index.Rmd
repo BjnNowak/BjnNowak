@@ -194,6 +194,6 @@ example
 
 # References
 
-* Yixuan Qiu [showtext: Using Fonts More Easily in R Graphs](https://cran.rstudio.com/web/packages/showtext/vignettes/introduction.html)
-* Claus Wilke [ggtext: Improved text rendering support for ggplot2](https://github.com/wilkelab/ggtext)
+* **Yixuan Qiu**, [showtext: Using Fonts More Easily in R Graphs](https://cran.rstudio.com/web/packages/showtext/vignettes/introduction.html)
+* **Claus Wilke**, [ggtext: Improved text rendering support for ggplot2](https://github.com/wilkelab/ggtext)
 
