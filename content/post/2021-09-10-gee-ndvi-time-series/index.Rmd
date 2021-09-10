@@ -1,0 +1,165 @@
+---
+title: ' [GEE] NDVI time series'
+author: Benjamin Nowak
+date: '2021-09-10'
+slug: gee-ndvi-time-series
+categories: ['GEE']
+tags:
+  - 'Remote sensing'
+  - 'NDVI'
+  - 'Sentinel'
+summary: 'Thanks to JavaScript API, Google Earth Engine allows to calculate NDVI for various sites of interest without having to download Sentinel-2 raw data. We will see here how to calculate NDVI time series with GEE.'
+---
+
+In a previous [post](https://bjnnowak.netlify.app/2021/08/09/qgis-how-to-create-ndvi-maps-from-sentinel-2-multispectral-images/) we saw how to create an NDVI map from raw Sentinel-2 data. However, this procedure has limitations when you want to process many dates. This new tutorial will show you how to calculate NDVI time series from Sentinel-2 images using the [Google Earth Engine](https://code.earthengine.google.com/) (you need to have a Google account to use GEE). 
+
+Thanks to JavaScript API, GEE allows to calculate NDVI for various sites of interest without having to download Sentinel-2 raw data. We will see here how annual NDVI evolution enable to detect winter cover crops, as realized in [this article](https://iopscience.iop.org/article/10.1088/1748-9326/ac007c/meta). 
+
+# 1. Define plot geometry
+
+After logging into [Google Earth Engine](https://code.earthengine.google.com/), we will start by delimiting the contours of our plot of interest. Create a new **Script** (left panel) and write the following lines of JavaScript code in the **Editor** (center panel).
+
+```
+// Create your plot
+// (you can also do it manually directly on the map)
+var geometry = ee.Geometry.Polygon(
+        [[[3.246980338791907, 45.835336025505995],
+        [3.247881561020911, 45.83249544350292],
+        [3.249383598069251, 45.83285426186172],
+        [3.2479673917093876, 45.837279498073954],
+        [3.2462507779398564, 45.837458892119855]]]);
+
+```
+As there is an uncertainty on the georeferencing of Sentinel images, I generally use a 20m buffer to make sure to keep only pixels within the plot.
+
+```
+// Apply negative buffer to geometry
+var geometryBuff = geometry.buffer(-20)
+
+```
+We are now ready to plot these geometries on the map.
+
+```
+// Add plot and buffer to the map
+// and specify fill color and layer name
+Map.addLayer(geometry,{color:'green'},'Border');
+Map.addLayer(geometryBuff,{color:'red'},'Buffer');
+
+// Center map on the plot
+Map.centerObject(geometry);
+
+```
+![](/GEE_FigPlot.PNG){width=100%} 
+
+# 2. Create a collection of clean Sentinel-2 images
+
+When loading Sentinel images, we will remove data biased by shadows or cloud cover. To do this we will use two levels of filtering: first ignore satellite images with cloud cover above a certain threshold and then, for the images that have been retained, keep only the pixels identified as soil or vegetation.
+
+Let's start by loading a Sentinel image collection that corresponds to our area and period of interest.
+
+```
+// Load image collection of Sentinel-2 imagery
+// (choose SR for atmospheric corrections to surface reflectance)
+var S2 = ee.ImageCollection('COPERNICUS/S2_SR') 
+  // Remove cloudy images from the collection
+  .filterMetadata('CLOUDY_PIXEL_PERCENTAGE', 'less_than', 20)
+  // Filter to study period
+  .filterDate('2019-09-01', '2020-10-01')
+  // Filter to plot boundaries
+  .filterBounds(geometryBuff);
+
+```
+We will now create a filter to keep only the pixels previously identified as vegetation or bare soil. This information is available in the [Scene Classification Layer (SCL)](https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-2-msi/level-2a/algorithm) provided with Sentinel-2 data (Note that you can also do the opposite: remove pixels identified as snow, clouds or shadows).
+
+```
+// Function to keep only vegetation and soil pixels
+function maskCloudAndShadows(image) {
+  // Select SCL layer
+  var scl = image.select('SCL'); 
+  // Select vegetation and soil pixels
+  var veg = scl.eq(4); // 4 = Vegetation
+  var soil = scl.eq(5); // 5 = Bare soils
+  // Mask if not veg or soil
+  var mask = (veg.neq(1)).or(soil.neq(1));
+  return image.updateMask(mask);
+}
+
+// Apply custom filter to S2 collection
+var S2 = S2.map(maskCloudAndShadows);
+
+````
+
+# 3. Compute NDVI
+
+We will now compute the NDVI based on the red (band 4) and infrared (band 8) reflectance.
+
+```
+// Function to compute NDVI and add result as new band
+var addNDVI = function(image) {
+return image.addBands(image.normalizedDifference(['B8', 'B4']));
+};
+
+// Add NDVI band to image collection
+var S2 = S2.map(addNDVI);
+
+```
+One thing to note: GEE will calculate the NDVI for the finest resolution available for bands 4 and 8 (10m in this case).
+
+# 4. Plot NDVI time series
+
+We can now calculate **for each date** the **average NDVI** of the plot with the following function:
+
+```
+var evoNDVI = ui.Chart.image.seriesByRegion(
+  S2,                // Image collection
+  geometryBuff,      // Region
+  ee.Reducer.mean(), // Type of reducer to apply
+  'nd',              // Band
+  10);               // Scale
+
+```
+We can finally plot the results: 
+
+```
+var plotNDVI = evoNDVI                 // Data
+    .setChartType('LineChart')         // Type of plot
+    .setOptions({                      // Plot customization
+      interpolateNulls: true,
+      lineWidth: 1,
+      pointSize: 3,
+      title: 'NDVI annual evolution',
+      hAxis: {title: 'Date'},
+      vAxis: {title: 'NDVI'}
+});
+
+```
+![](/GEE_FigTime.PNG){width=100%} 
+
+To return to our original question, the winter increase in NDVI suggests that a cover crop was sown, then destroyed at the end of December. Next cash crop was sown in following spring.
+
+# 5. Exploring within-field heterogeneities
+
+We can also plot the different NDVI maps obtained. For the sake of simplicity, we will show here only one map: the median NDVI per pixel for the whole study period.
+
+```
+// Extract NDVI band from S2 collection 
+var NDVI = S2.select(['nd']);
+// Extract median NDVI value for each pixel
+var NDVImed = NDVI.median(); 
+
+// Hex values for red to green color palette
+var pal = ['#d73027', '#f46d43', '#fdae61', '#fee08b', '#d9ef8b', '#a6d96a'];
+
+// Display NDVI results on map
+Map.addLayer(
+  NDVImed.clip(geometryBuff),        // Clip map to plot borders
+  {min:0.2, max:0.4, palette: pal},  // Specify color palette 
+  'NDVI'                             // Layer name
+  )
+
+```
+![](/GEE_MedNDVI.PNG){width=100%} 
+
+# References
+
+* Nowak B., Marliac G. and Michaud A. (**2021**). [Estimation of winter soil cover by vegetation before spring-sown crops for mainland France using multispectral satellite imagery](https://iopscience.iop.org/article/10.1088/1748-9326/ac007c)
