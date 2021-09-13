@@ -56,7 +56,7 @@ var S2 = ee.ImageCollection(&#39;COPERNICUS/S2_SR&#39;)
   // Filter to plot boundaries
   .filterBounds(geometryBuff);
 </code></pre>
-<p>We will now create a filter to keep only the pixels previously identified as vegetation or bare soil. This information is available in the <a href="https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-2-msi/level-2a/algorithm">Scene Classification Layer (SCL)</a> provided with Sentinel-2 data (Note that you can also do the opposite: remove pixels identified as snow, clouds or shadows).</p>
+<p>We will now create a filter to keep only the pixels previously identified as vegetation or bare soil. This information is available in the <a href="https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-2-msi/level-2a/algorithm">Scene Classification Layer (SCL)</a> provided with Sentinel-2 data.</p>
 <pre><code>// Function to keep only vegetation and soil pixels
 function maskCloudAndShadows(image) {
   // Select SCL layer
@@ -71,6 +71,24 @@ function maskCloudAndShadows(image) {
 
 // Apply custom filter to S2 collection
 var S2 = S2.map(maskCloudAndShadows);
+</code></pre>
+<p>In addition, we will also create a filter to mask clouds using the Sentinel-2 QA band, <a href="https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR#description">as define in the Earth Engine catalog</a>. We will not apply this filter right away to compare the results later.</p>
+<pre><code>// Filter defined here: 
+// https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR#description
+
+function maskS2clouds(image) {
+  var qa = image.select(&#39;QA60&#39;);
+
+  // Bits 10 and 11 are clouds and cirrus, respectively.
+  var cloudBitMask = 1 &lt;&lt; 10;
+  var cirrusBitMask = 1 &lt;&lt; 11;
+
+  // Both flags should be set to zero, indicating clear conditions.
+  var mask = qa.bitwiseAnd(cloudBitMask).eq(0)
+      .and(qa.bitwiseAnd(cirrusBitMask).eq(0));
+
+  return image.updateMask(mask);
+}
 </code></pre>
 </div>
 <div id="compute-ndvi" class="section level1">
@@ -97,9 +115,10 @@ var S2 = S2.map(addNDVI);
   10);               // Scale
 </code></pre>
 <p>We can finally plot the results:</p>
-<pre><code>var plotNDVI = evoNDVI                 // Data
-    .setChartType(&#39;LineChart&#39;)         // Type of plot
-    .setOptions({                      // Plot customization
+<pre><code>var plotNDVI = evoNDVI                    // Data
+    .setChartType(&#39;LineChart&#39;)            // Type of plot
+    .setSeriesNames([&#39;SCL filter only&#39;])
+    .setOptions({                         // Plot customization
       interpolateNulls: true,
       lineWidth: 1,
       pointSize: 3,
@@ -109,7 +128,33 @@ var S2 = S2.map(addNDVI);
 });
 </code></pre>
 <p><img src="/GEE_FigTime.PNG" style="width:100.0%" /></p>
-<p>To return to our original question, the winter increase in NDVI suggests that a cover crop was sown, then destroyed at the end of December. Next cash crop was sown in following spring.</p>
+<p>Looking at the plot above, we can see that a late December date seems strange, with a lower NDVI than the usual bare soil NDVI (~0.2). To clean our dataset, we will now apply the second filter defined earlier and specifically designed to remove pixels covered by clouds.</p>
+<pre><code>// Apply second filter
+var S2 = S2.map(maskS2clouds);
+
+// Plot results
+var plotNDVI = ui.Chart.image.seriesByRegion(
+  S2, 
+  geometryBuff,
+  ee.Reducer.mean(),
+  &#39;nd&#39;,10)
+  .setChartType(&#39;LineChart&#39;)
+  .setSeriesNames([&#39;After cloud filter&#39;])
+  .setOptions({
+    interpolateNulls: true,
+    lineWidth: 1,
+    pointSize: 3,
+    title: &#39;NDVI annual evolution&#39;,
+    hAxis: {title: &#39;Date&#39;},
+    vAxis: {title: &#39;NDVI&#39;},
+    series: {0:{color: &#39;red&#39;}}
+  });
+  
+print(plotNDVI)
+</code></pre>
+<p><img src="/GEE_FigTime2.PNG" style="width:100.0%" /></p>
+<p>We can see on the plot above that the second filter removed the end of December date. You can consult <a href="https://philippgaertner.github.io/2020/08/percent-cloud-cover/">this post from Philipp Gärtner</a> for more information on the evaluation of cloud cover from the QA60 band.</p>
+<p>To come back to our original question, the winter increase in NDVI suggests that a cover crop was sown, then destroyed at the end of December. Next cash crop was sown in following spring.</p>
 </div>
 <div id="exploring-within-field-heterogeneities" class="section level1">
 <h1>5. Exploring within-field heterogeneities</h1>
@@ -134,6 +179,7 @@ Map.addLayer(
 <div id="references" class="section level1">
 <h1>References</h1>
 <ul>
+<li>Gärtner P. (<strong>2020</strong>). <a href="https://philippgaertner.github.io/2020/08/percent-cloud-cover/">How cloudy is my Sentinel-2 image collection? - The ‘QA60’ band gives insights</a></li>
 <li>Nowak B., Marliac G. and Michaud A. (<strong>2021</strong>). <a href="https://iopscience.iop.org/article/10.1088/1748-9326/ac007c">Estimation of winter soil cover by vegetation before spring-sown crops for mainland France using multispectral satellite imagery</a></li>
 </ul>
 </div>
