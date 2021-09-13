@@ -73,7 +73,7 @@ We will now create a filter to keep only the pixels previously identified as veg
 
 ```
 // Function to keep only vegetation and soil pixels
-function maskCloudAndShadows(image) {
+function keepFieldPixel(image) {
   // Select SCL layer
   var scl = image.select('SCL'); 
   // Select vegetation and soil pixels
@@ -85,7 +85,7 @@ function maskCloudAndShadows(image) {
 }
 
 // Apply custom filter to S2 collection
-var S2 = S2.map(maskCloudAndShadows);
+var S2 = S2.map(keepFieldPixel);
 
 ```
 

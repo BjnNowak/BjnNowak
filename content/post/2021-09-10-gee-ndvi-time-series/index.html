@@ -58,7 +58,7 @@ var S2 = ee.ImageCollection(&#39;COPERNICUS/S2_SR&#39;)
 </code></pre>
 <p>We will now create a filter to keep only the pixels previously identified as vegetation or bare soil. This information is available in the <a href="https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-2-msi/level-2a/algorithm">Scene Classification Layer (SCL)</a> provided with Sentinel-2 data.</p>
 <pre><code>// Function to keep only vegetation and soil pixels
-function maskCloudAndShadows(image) {
+function keepFieldPixel(image) {
   // Select SCL layer
   var scl = image.select(&#39;SCL&#39;); 
   // Select vegetation and soil pixels
@@ -70,7 +70,7 @@ function maskCloudAndShadows(image) {
 }
 
 // Apply custom filter to S2 collection
-var S2 = S2.map(maskCloudAndShadows);
+var S2 = S2.map(keepFieldPixel);
 </code></pre>
 <p>In addition, we will also create a filter to mask clouds using the Sentinel-2 QA band, <a href="https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR#description">as define in the Earth Engine catalog</a>. We will not apply this filter right away to compare the results later.</p>
 <pre><code>// Filter defined here: 
