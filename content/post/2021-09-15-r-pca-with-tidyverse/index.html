@@ -1,0 +1,233 @@
+---
+title: '[R] PCA with tidyverse'
+author: Benjamin Nowak
+date: '2021-09-15'
+slug: r-pca-with-tidyverse
+categories:
+  - ['R']
+tags:
+  - 'PCA'
+  - 'tidyverse'
+  - 'TidyTuesday'
+summary: "In this post, we will perform a Principal Component Analysis (PCA) to explore the evolution of songs' features over the years, using {tidyverse} tools and syntax "
+---
+
+
+
+<p>In this post, we will perform a Principal Component Analysis (PCA) to explore the evolution of songs’ features over the years. We will see how we can use the {tidyverse} tools and syntax to perform this PCA.</p>
+<p>For this, we will use the TidyTuesday dataset of <a href="https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-09-14/readme.md">Top 100 Billboard</a>. To this data set is associated a characterization of the songs according to several features (danceability, mode, tempo…), provided by the <a href="https://developer.spotify.com/documentation/web-api/reference/#endpoint-get-audio-features">Spotify API</a>.</p>
+<div id="data-preparation" class="section level1">
+<h1>1. Data preparation</h1>
+<pre class="r"><code># Load data 
+# Billbord ranking
+billboard &lt;- readr::read_csv(&#39;https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-14/billboard.csv&#39;)
+# Songs features based on Spotify API
+features &lt;- readr::read_csv(&#39;https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-14/audio_features.csv&#39;)
+
+head(features)</code></pre>
+<pre><code>## # A tibble: 6 x 22
+##   song_id   performer  song    spotify_genre  spotify_track_id spotify_track_pr~
+##   &lt;chr&gt;     &lt;chr&gt;      &lt;chr&gt;   &lt;chr&gt;          &lt;chr&gt;            &lt;chr&gt;            
+## 1 -twistin~ Bill Blac~ -twist~ []             &lt;NA&gt;             &lt;NA&gt;             
+## 2 ¿Dònde E~ Augie Rios ¿Dònde~ [&#39;novelty&#39;]    &lt;NA&gt;             &lt;NA&gt;             
+## 3 ......An~ Andy Will~ ......~ [&#39;adult stand~ 3tvqPPpXyIgKrm4~ https://p.scdn.c~
+## 4 ...And T~ Sandy Nel~ ...And~ [&#39;rock-and-ro~ 1fHHq3qHU8wpRKH~ &lt;NA&gt;             
+## 5 ...Baby ~ Britney S~ ...Bab~ [&#39;dance pop&#39;,~ 3MjUtNVVq3C8Fn0~ https://p.scdn.c~
+## 6 ...Ready~ Taylor Sw~ ...Rea~ [&#39;pop&#39;, &#39;post~ 2yLa0QULdQr0qAI~ &lt;NA&gt;             
+## # ... with 16 more variables: spotify_track_duration_ms &lt;dbl&gt;,
+## #   spotify_track_explicit &lt;lgl&gt;, spotify_track_album &lt;chr&gt;,
+## #   danceability &lt;dbl&gt;, energy &lt;dbl&gt;, key &lt;dbl&gt;, loudness &lt;dbl&gt;, mode &lt;dbl&gt;,
+## #   speechiness &lt;dbl&gt;, acousticness &lt;dbl&gt;, instrumentalness &lt;dbl&gt;,
+## #   liveness &lt;dbl&gt;, valence &lt;dbl&gt;, tempo &lt;dbl&gt;, time_signature &lt;dbl&gt;,
+## #   spotify_track_popularity &lt;dbl&gt;</code></pre>
+<p>For the next part of our analysis we will look at <strong>the evolution of songs’ features over the years</strong>. To do this, we need to create a column with the year of songs’ creation, using {tidyverse} tools. Then, we will add this new column to songs’ features data.</p>
+<pre class="r"><code>library(tidyverse)
+
+bill_prep&lt;-billboard%&gt;%
+  # Keep only 1st appearance on Billboard
+  filter(
+    (weeks_on_chart==1)&amp;(instance==1)
+  )%&gt;%
+  # Add Year column
+  mutate(year=format(
+    as.Date(week_id,&quot;%m/%d/%Y&quot;),format=&quot;%Y&quot;)
+  )%&gt;%
+  # Set year as numeric
+  mutate(year=as.numeric(year))
+
+# Add year to songs&#39; features data
+features_prep&lt;-features%&gt;%
+  left_join(bill_prep,by=&quot;song_id&quot;)</code></pre>
+</div>
+<div id="data-cleaning-and-pca" class="section level1">
+<h1>2. Data cleaning and PCA</h1>
+<p>First, we will select the variables on interest for the PCA, plus one additional variable (year of creation of the song).</p>
+<pre class="r"><code>PCA_data&lt;-features_prep%&gt;%
+  select(
+    # Variables of interest for PCA
+    c(danceability,energy,instrumentalness,
+      key,acousticness,mode,valence,tempo,
+      time_signature,speechiness,loudness,liveness,
+    # Add year as supplementary variable  
+      year
+    )
+  )%&gt;%
+  # Remove rows with NA
+  drop_na()</code></pre>
+<p>We are now ready to perform the PCA.</p>
+<pre class="r"><code>PCA &lt;-PCA_data%&gt;%
+  select(-year)%&gt;%
+  # Perform PCA with scaled variables
+  prcomp(scale = TRUE)</code></pre>
+<p>Now, we need the {broom} extension to access the results of <em>prcomp()</em> with the {tidyverse} syntax. After loading {broom}, you can use the <em>tidy()</em> function to access the results of the PCA such as eigenvalues.</p>
+<pre class="r"><code>library(broom)
+
+PCA%&gt;%
+  tidy(matrix = &quot;eigenvalues&quot;)</code></pre>
+<pre><code>## # A tibble: 12 x 4
+##       PC std.dev percent cumulative
+##    &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;      &lt;dbl&gt;
+##  1     1   1.61   0.217       0.217
+##  2     2   1.17   0.114       0.331
+##  3     3   1.09   0.0993      0.431
+##  4     4   1.04   0.0893      0.520
+##  5     5   1.01   0.0850      0.605
+##  6     6   0.980  0.0801      0.685
+##  7     7   0.965  0.0776      0.762
+##  8     8   0.928  0.0717      0.834
+##  9     9   0.894  0.0666      0.901
+## 10    10   0.760  0.0482      0.949
+## 11    11   0.660  0.0363      0.985
+## 12    12   0.420  0.0147      1</code></pre>
+<p>Here we can see that the first Principal Component (PC) accounts for 22% of the overall variability (11% for PC2).</p>
+</div>
+<div id="plot-of-individuals" class="section level1">
+<h1>3. Plot of individuals</h1>
+<pre class="r"><code># Add &#39;year&#39; variable to plot results 
+PCA_indiv&lt;-PCA%&gt;%
+  broom::augment(PCA_data)
+
+# Plot of individuals
+ggplot(
+  data=PCA_indiv,
+  aes(.fittedPC1, .fittedPC2,color=year))+
+  geom_point()+
+  labs(
+    title = &#39;Plot of individuals&#39;,
+    subtitle = &#39;Color shows year of song creation&#39;,
+    x=&#39;PC1 (22%)&#39;,
+    y=&#39;PC2 (11%)&#39;,
+    color=&#39;Year&#39;
+  )+
+  theme_minimal()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>It seems that PC1 distinguishes well the songs according to their years of creation. We will now see which variables contribute the most to this axis.</p>
+</div>
+<div id="plot-of-variables" class="section level1">
+<h1>4. Plot of variables</h1>
+<p>Variable coordinates are stored in the “rotation” matrix. We can extract these coordinates as follows:</p>
+<pre class="r"><code>PCA_var&lt;-PCA %&gt;%
+  # Extract variable coordinates
+  tidy(matrix = &quot;rotation&quot;) %&gt;%
+  # Format table form long to wide
+  pivot_wider(names_from = &quot;PC&quot;, names_prefix = &quot;PC&quot;, values_from = &quot;value&quot;)%&gt;%
+  # Rename column with variable names
+  rename(Variable=column)%&gt;%
+  # &#39;Clean&#39; variable names 
+  # Upper case on first letter
+  mutate(Variable=stringr::str_to_title(Variable))%&gt;%
+  # Change &#39;_&#39; for space
+  mutate(Variable=stringr::str_replace_all(Variable,&quot;_&quot;,&quot; &quot;))
+
+head(PCA_var)</code></pre>
+<pre><code>## # A tibble: 6 x 13
+##   Variable          PC1     PC2      PC3     PC4     PC5     PC6     PC7     PC8
+##   &lt;chr&gt;           &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+## 1 Danceability   0.331  -0.542   0.00516  0.164  -0.133  -0.0879  0.140   0.155 
+## 2 Energy         0.525   0.234  -0.161   -0.0851  0.0569  0.145  -0.0808  0.114 
+## 3 Instrumental~ -0.0422 -0.195  -0.304   -0.521   0.0581 -0.327  -0.635   0.106 
+## 4 Key            0.0382 -0.114   0.382   -0.559   0.233   0.395   0.248  -0.245 
+## 5 Acousticness  -0.461  -0.0693 -0.0153  -0.0601 -0.212   0.0326  0.149  -0.0402
+## 6 Mode          -0.160   0.207  -0.497    0.329  -0.0900  0.107   0.0612 -0.220 
+## # ... with 4 more variables: PC9 &lt;dbl&gt;, PC10 &lt;dbl&gt;, PC11 &lt;dbl&gt;, PC12 &lt;dbl&gt;</code></pre>
+<p>We may now plot the variables.</p>
+<pre class="r"><code># Load ggrepel to avoid variable names to overlap
+library(ggrepel)
+
+var&lt;-ggplot(data=PCA_var,aes(PC1, PC2)) +
+  # Add variables arrows
+  geom_segment(
+    xend = 0, yend = 0, 
+    arrow = arrow(
+      length = unit(0.03, &quot;npc&quot;),
+      ends = &quot;first&quot;
+    )
+  )+
+  # Add variables names
+  geom_text_repel(
+    aes(label = Variable),
+    hjust = 1,size=3,
+    min.segment.length = Inf,
+    nudge_x=0.01,nudge_y=0.01
+  ) +
+  coord_fixed()+
+  labs(
+    title = &#39;Plot of variables&#39;,
+    x=&#39;PC1 (22%)&#39;,
+    y=&#39;PC2 (11%)&#39;,
+    color=&#39;Year&#39;
+  )+
+  theme_minimal()
+
+var</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<p>Now we will add year (which was not used for the PCA) as an additional variable on the graph of variables. To do so we will calculate the coordinates of year on the different axes of the PCA.</p>
+<pre class="r"><code>year_coord&lt;-as.data.frame(
+  # Calculate correlation of year with PCA axis
+  cor(PCA_data$year,PCA$x)
+  )%&gt;%
+  # Add name of the variable
+  mutate(Variable=&quot;Year&quot;)
+
+year_coord</code></pre>
+<pre><code>##         PC1       PC2       PC3       PC4       PC5        PC6        PC7
+## 1 0.4652744 0.1592881 0.3657629 0.2336913 0.1282045 -0.1212724 -0.1761371
+##           PC8         PC9      PC10     PC11       PC12 Variable
+## 1 -0.02687627 -0.09279391 0.1115629 0.221641 0.04197899     Year</code></pre>
+<p>We may now add this additional variable to the plot of variables.</p>
+<pre class="r"><code>var+
+  geom_segment(
+    data=year_coord,
+    color=&quot;red&quot;,
+    xend = 0, yend = 0, 
+    arrow = arrow(
+      length = unit(0.03, &quot;npc&quot;),
+      ends = &quot;first&quot;
+    )
+  )+
+  geom_text_repel(
+    data=as.data.frame(year_coord),
+    aes(label = Variable),
+    color=&quot;red&quot;,hjust = 1,size=3,
+    min.segment.length = Inf,
+    nudge_x=0.02,nudge_y=-0.02
+  )+
+  labs(
+    subtitle=&quot;Year as additional variable&quot;
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p>We can see that the “Energy” variable is the most strongly correlated with the “Year” variable: Billboard hits tend to become more and more energetic over the years.</p>
+</div>
+<div id="add-name-of-individuals" class="section level1">
+<h1>5. Add name of individuals</h1>
+<p>Finally, you may also add labels to the plot of individuals, to identify some specific points. This is what has been done below to identify the most popular songs in the same dataset.</p>
+<p><img src="/Tidy_Billboard.png" style="width:100.0%" /></p>
+<p>You may find the full code for this example <a href="https://github.com/BjnNowak/TidyTuesday/blob/main/SC_Billboard.R">here.</a></p>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<p><strong>Data set:</strong>
+Mock T., <a href="https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-08-10/readme.md">Tidy Tuesday</a></p>
+<p><strong>Useful reference for PCA with {tidyverse}:</strong>
+Wilke C.O., <a href="https://clauswilke.com/blog/2020/09/07/pca-tidyverse-style/">PCA tidyverse style</a></p>
+</div>
