@@ -1,0 +1,192 @@
+---
+title: '[R] Web scraping with {rvest}'
+author: Benjamin Nowak
+date: '2021-09-18'
+slug: r-web-scraping-with-rvest
+categories:
+  - ['R']
+tags:
+  - 'scraping'
+  - 'running'
+  - 'web'
+summary: "Web scraping refers to various methods used to collect data across the web. In this tutorial, we will see how we can use {rvest} to perform web scraping and answer one question: how do women perform compared to men in ultra-trail running races? "
+---
+
+Web scraping refers to various methods used to collect data across the web. The [{rvest} extension](https://github.com/tidyverse/rvest), included inside the tidyverse, allows you to perform web scraping with R. the data can then be analyzed according to the protocols usually used with R. 
+
+In this tutorial, we will see how we can use {rvest} to answer one question: **how do women perform compared to men in ultra-trail running races?** We will focus on one of the most famous races of the discipline: the UTMB, in the French Alps (170km, +10,000m of elevation gain).   
+
+# 1. "Scrape" the data
+
+Open [the results for the UTMB 2021 edition](https://itra.run/Races/RaceResults?raceYearId=72496) from the website of the International Trail Running Association (ITRA), which compiles the results of trail running races from 2012 to 2021. Then we will copy the url of this page to paste it inside *read_html()*.
+
+```{r, message=FALSE, warning=FALSE}
+
+# Load {rvest} with the whole tidyverse
+library(tidyverse)
+
+# Read HTML page with read_html()
+utmb_2021 <- rvest::read_html('https://itra.run/Races/RaceResults?raceYearId=72496')
+
+utmb_2021
+
+```
+
+It is easier to extract data inside an HTML table, which is fortunately the case for the ranking. we will identify this table with *html_element()*, then convert it to a tibble with *html_table()* 
+
+```{r, message=FALSE, warning=FALSE}
+
+ranking_2021 <- utmb_2021 %>%
+    rvest::html_element(".table") %>% 
+    rvest::html_table()
+
+ranking_2021
+
+```
+
+We need a few more steps to format this table:
+
+```{r, message=FALSE, warning=FALSE}
+
+ranking_2021<-ranking_2021 %>%
+  # Rename first column
+  rename(Rank=1) %>%
+  mutate(Rank=as.numeric(Rank)) %>%
+  # Remove column with ITRA score (only available if subscription)
+  select(-Score) %>%
+  # Change initial for gender
+  mutate(Gender=case_when(
+    Gender=="F"~"Women",
+    Gender=="H"~"Men"
+  ))%>%
+  # Add year of the race in first position
+  add_column(Year=2021,.before = 1)
+
+ranking_2021
+
+```
+
+# 2. Define a funtion
+
+Now that the procedure have been defined, we will resume these steps in a function, to easily extract data from other dates from their URL.
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE, results='hide'}
+
+FunRank <- function(html,year){
+
+  rank <- html %>%
+    rvest::html_element(".table") %>% 
+    rvest::html_table() %>%
+    rename(Rank=1) %>%
+    mutate(Rank=as.numeric(Rank)) %>%
+    select(-Score) %>%
+    mutate(Gender=case_when(
+      Gender=="F"~"Women",
+      Gender=="H"~"Men"
+    ))%>%
+    add_column(Year=year,.before = 1)
+  
+  return(rank)
+
+}
+
+```
+
+Let's apply this function to extract [the UTMB ranking for 2013](https://itra.run/Races/RaceResults?raceYearId=3940).
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE, results='hide'}
+
+# Read HTML page for 2013
+utmb_2013 <- rvest::read_html('https://itra.run/Races/RaceResults?raceYearId=3940')
+
+# Apply custom function
+ranking_2013 <- FunRank(html=utmb_2013, year=2013)
+ranking_2013
+
+```
+
+We may now merge the results for both years in one table.
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE, results='hide'}
+
+# Merging ranking for both years
+ranking <- bind_rows(ranking_2013,ranking_2021)
+
+ranking
+
+```
+
+# 3. Analyze the data
+
+Now that the data is formatted in a tibble, the usual processing procedures can be implemented. Let's start by answering a question: did the percentage of women among finishers increase between 2013 and 2021?
+
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE, results='hide'}
+
+# Merging ranking for both years
+gender_ratio <- ranking%>%
+  group_by(Year,Gender)%>%
+  # Add variable to count participants
+  mutate(ct=1)%>%
+  # Sum by gender and years
+  summarize(
+    Finishers=sum(ct)
+  )%>%
+  ungroup()%>%
+  group_by(Year)%>%
+  # Percentage of women by year
+  summarize(
+    PercentageWomen = Finishers[Gender=='Women']/sum(Finishers)*100
+  )%>%
+  drop_na()
+
+gender_ratio
+
+
+```
+
+For both years, the percentage of women among the finishers is low (this is also the case among the participants). This percentage was lower in 2021 than in 2013.
+
+Next, we will see how women perform compared to men.
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE, results='hide'}
+
+# Load lubridate for time manipulation
+library(lubridate)
+
+gender_time <-ranking%>%
+  group_by(Year,Gender)%>%
+  # Convert hour:minute:second to second
+  mutate(
+    Time=period_to_seconds(hms(Time))
+  )%>%
+  # Mean time for finisher by year and gender
+  summarize(
+    MeanTime=mean(Time)
+  )%>%
+  ungroup()%>%
+  drop_na()
+
+# Plot results
+ggplot(
+  data=gender_time,
+  aes(y=as.factor(Year),x=MeanTime,color=Gender))+
+  geom_point(size=5)+
+  labs(
+    title='Mean time for UTMB finishers',
+    subtitle='Comparison by genders for years 2013 and 2021',
+    y="",
+    x="Mean finishing time"
+  )+
+  scale_x_continuous(breaks=c(39.5*3600,40*3600,40.5*3600),labels=c("39h30min","40h","40h30min"))+
+  theme_minimal()
+
+```
+
+We then see that in 2021, on average, **women were faster than men to finish the UTMB!**
+
+# References 
+
+Wickham H., **2021**. [{rvest} Easily Harvest (Scrape) Web Pages](https://cran.r-project.org/web/packages/rvest/rvest.pdf)
+
+
