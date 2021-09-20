@@ -121,7 +121,7 @@ ranking
 Now that the data is formatted in a tibble, the usual processing procedures can be implemented. Let's start by answering a question: did the percentage of women among finishers increase between 2013 and 2021?
 
 
-```{r, message=FALSE, warning=FALSE, echo=TRUE, results='hide'}
+```{r, message=FALSE, warning=FALSE}
 
 # Merging ranking for both years
 gender_ratio <- ranking%>%
