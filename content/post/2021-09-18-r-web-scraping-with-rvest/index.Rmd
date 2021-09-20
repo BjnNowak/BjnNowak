@@ -149,7 +149,7 @@ For both years, the percentage of women among the finishers is low (this is also
 
 Next, we will see how women perform compared to men.
 
-```{r, message=FALSE, warning=FALSE, echo=TRUE, results='hide'}
+```{r, message=FALSE, warning=FALSE}
 
 # Load lubridate for time manipulation
 library(lubridate)
