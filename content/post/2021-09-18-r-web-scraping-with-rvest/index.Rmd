@@ -94,7 +94,7 @@ FunRank <- function(html,year){
 
 Let's apply this function to extract [the UTMB ranking for 2013](https://itra.run/Races/RaceResults?raceYearId=3940).
 
-```{r, message=FALSE, warning=FALSE, echo=TRUE, results='hide'}
+```{r, message=FALSE, warning=FALSE}
 
 # Read HTML page for 2013
 utmb_2013 <- rvest::read_html('https://itra.run/Races/RaceResults?raceYearId=3940')
@@ -107,12 +107,10 @@ ranking_2013
 
 We may now merge the results for both years in one table.
 
-```{r, message=FALSE, warning=FALSE, echo=TRUE, results='hide'}
+```{r, message=FALSE, warning=FALSE}
 
 # Merging ranking for both years
 ranking <- bind_rows(ranking_2013,ranking_2021)
-
-ranking
 
 ```
 
