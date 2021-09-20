@@ -70,7 +70,7 @@ ranking_2021
 
 Now that the procedure have been defined, we will resume these steps in a function, to easily extract data from other dates from their URL.
 
-```{r, message=FALSE, warning=FALSE, echo=TRUE, results='hide'}
+```{r, message=FALSE, warning=FALSE}
 
 FunRank <- function(html,year){
 
