@@ -108,11 +108,23 @@ utmb_2013 &lt;- rvest::read_html(&#39;https://itra.run/Races/RaceResults?raceYea
 # Apply custom function
 ranking_2013 &lt;- FunRank(html=utmb_2013, year=2013)
 ranking_2013</code></pre>
+<pre><code>## # A tibble: 1,687 x 7
+##     Year  Rank Runner                  Time       Age Gender Nationality
+##    &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;                   &lt;chr&gt;    &lt;int&gt; &lt;chr&gt;  &lt;chr&gt;      
+##  1  2013     1 THEVENARD Xavier        20:34:57    33 Men    FRA        
+##  2  2013     2 HERAS Miguel            20:54:08    46 Men    ESP        
+##  3  2013     3 DOMINGUEZ LEDO Javier   21:17:38    47 Men    ESP        
+##  4  2013     4 OLSON Tim               21:38:23    38 Men    USA        
+##  5  2013     5 FOOTE Mike              21:53:19    38 Men    USA        
+##  6  2013     6 CHORIER Julien          22:08:11    41 Men    FRA        
+##  7  2013     7 BOSIO Rory              22:37:26    37 Women  USA        
+##  8  2013     8 Collomb Patton Bertrand 23:14:16    46 Men    FRA        
+##  9  2013     9 LEJEUNE Arnaud          23:18:05    42 Men    FRA        
+## 10  2013    10 TIDD John               23:18:27    58 Men    ESP        
+## # ... with 1,677 more rows</code></pre>
 <p>We may now merge the results for both years in one table.</p>
 <pre class="r"><code># Merging ranking for both years
-ranking &lt;- bind_rows(ranking_2013,ranking_2021)
-
-ranking</code></pre>
+ranking &lt;- bind_rows(ranking_2013,ranking_2021)</code></pre>
 </div>
 <div id="analyze-the-data" class="section level1">
 <h1>3. Analyze the data</h1>
@@ -135,6 +147,12 @@ gender_ratio &lt;- ranking%&gt;%
   drop_na()
 
 gender_ratio</code></pre>
+<pre><code>## # A tibble: 2 x 2
+## # Groups:   Year [2]
+##    Year PercentageWomen
+##   &lt;dbl&gt;           &lt;dbl&gt;
+## 1  2013            8.30
+## 2  2021            7.21</code></pre>
 <p>For both years, the percentage of women among the finishers is low (this is also the case among the participants). This percentage was lower in 2021 than in 2013.</p>
 <p>Next, we will see how women perform compared to men.</p>
 <pre class="r"><code># Load lubridate for time manipulation
