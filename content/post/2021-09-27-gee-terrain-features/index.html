@@ -1,0 +1,107 @@
+---
+title: '[GEE] Terrain features with Digital Elevation Model'
+author: Benjamin Nowak
+date: '2021-09-27'
+slug: gee-terrain-features
+categories:
+  - ['GEE']
+tags:
+  - 'Elevation'
+  - 'DEM'
+  - 'Remote Sensing'
+---
+
+
+
+<p>A Digital Elevation Model (DEM) is a grid providing elevation data. Many terrain features, such as slope or aspect, may be derived from a DEM. There are several ways to generate DEM. The traditional one is to interpolate elevation from point data sets coming from altimeter or GPS data. But now most of the models are created from remote sensed data.</p>
+<p>In this tutorial, we will see how we can use the Google Earth Engine to derived the main terrain features from the Digital Elevation Model of NASA Space Shuttle Radar Topography Mission (SRTM).</p>
+<div id="elevation" class="section level1">
+<h1>1. Elevation</h1>
+<p>After logging into <a href="https://code.earthengine.google.com/">Google Earth Engine</a>, we will start by delimiting the contours of our area of interest. Create a new <strong>Script</strong> (left panel) and write the following lines of JavaScript code in the <strong>Editor</strong> (center panel).</p>
+<pre><code>// Create your area of intersest (you can also do it manually 
+// directly on the map, or import a shapefile as asset)
+var geometry = ee.Geometry.Polygon(
+        [[[2.373545103300616, 46.21689061120703],
+          [2.373545103300616, 45.443742190410255],
+          [3.323862486113116, 45.443742190410255],
+          [3.323862486113116, 46.21689061120703]]]);
+</code></pre>
+<p>We will now load <a href="https://developers.google.com/earth-engine/datasets/catalog/USGS_SRTMGL1_003#description">the NASA SRTM Digital Elevation Model</a>. This model is provided at a resolution of 1 arc-second (approximately 30m).</p>
+<pre><code>// Load Digital Elevation Model
+var dataset = ee.Image(&#39;USGS/SRTMGL1_003&#39;);
+</code></pre>
+<p>This raster is composed of a single band: elevation.</p>
+<pre><code>// Select elevation band and clip by area of interest
+var elevation = dataset.select(&#39;elevation&#39;)
+  .clip(geometry); 
+</code></pre>
+<p>Before plotting elevation map, we will compute the minimum and maximum elevation for our area of interest.</p>
+<pre><code>// Compute min and max elevation with reduceRegion()
+// and extract numeric value with get()
+var minElev = elevation.reduceRegion(ee.Reducer.min()).get(&#39;elevation&#39;);
+var maxElev = elevation.reduceRegion(ee.Reducer.max()).get(&#39;elevation&#39;);
+
+// Print values in console (right panel)
+print(&#39;Min:&#39;,minElev, &#39;meters&#39;)
+print(&#39;Max:&#39;,maxElev, &#39;meters&#39;)
+</code></pre>
+<p>We will now plot the elevation map.</p>
+<pre><code>// Create palette (from green to brown) to display elevation
+var elevPal = [&quot;#283618&quot;,&quot;#606c38&quot;,&quot;#fefae0&quot;,&quot;#dda15e&quot;,&quot;#bc6c25&quot;];
+
+// Center map on area of interest
+Map.centerObject(geometry);
+// Add elevation layer
+Map.addLayer(
+  elevation,
+  // Color palette, with min and max values
+  {min:ee.Number(minElev).getInfo(),max:ee.Number(maxElev).getInfo(),palette:elevPal},
+  // Name of the layer
+  &#39;Elevation&#39;);
+</code></pre>
+<p><img src="/DEM_Elevation.PNG" style="width:100.0%" /></p>
+</div>
+<div id="slope" class="section level1">
+<h1>2. Slope</h1>
+<p>One of the important information we can derive from a DEM is the slope.</p>
+<pre><code>// Compute slope from elevation
+var slope = ee.Terrain.slope(elevation);
+</code></pre>
+<p>We have thus created a new raster with a ‘slope’ band that gives the value of the slope in degrees. As an example, we can compute the average slope for our area of interest.</p>
+<pre><code>var meanSlope = slope.reduceRegion(ee.Reducer.mean()).get(&#39;slope&#39;);
+
+print(&#39;Mean:&#39;,meanSlope)
+</code></pre>
+<p>We can also map the slope:</p>
+<pre><code>// Palette with color gradient
+var slopePal = [&quot;ffe3e0&quot;,&quot;fbc3bc&quot;,&quot;f7a399&quot;,&quot;f38375&quot;,&quot;ef6351&quot;];
+
+// Add slope layer on the map
+Map.addLayer(slope,{min:0,max:20,palette:slopePal}, &#39;Slope&#39;);
+</code></pre>
+<p><img src="/DEM_Slope.PNG" style="width:100.0%" /></p>
+</div>
+<div id="aspect" class="section level1">
+<h1>3. Aspect</h1>
+<p>Another important information that we can derive from the DEM is the aspect.</p>
+<pre><code>// Compute aspect from elevation
+var aspect = ee.Terrain.aspect(elevation);
+</code></pre>
+<p>As for the slope, we have thus created a new raster with an ‘aspect’ band. Exposure is coded as follows: it starts at 0° for north-facing slopes, then gradually increases to 90° for east-facing slopes, then 180° for south-facing slopes, and so on until it returns to 360° for north-facing slopes.</p>
+<pre><code>// Palette for aspect: black for north-facing, white for south-facing,
+// grey in-between
+var aspectPal = [&quot;#212529&quot;,&quot;#adb5bd&quot;,&quot;#e9ecef&quot;,&quot;#adb5bd&quot;,&quot;#212529&quot;];
+// Add aspect to map
+Map.addLayer(aspect,{min:0,max:360,palette:aspectPal}, &#39;Aspect&#39;);
+</code></pre>
+<p><img src="/DEM_Aspect.PNG" style="width:100.0%" /></p>
+<p>Finally, you may export the raster to your Google Drive with the following lines. It will create a new <strong>Task</strong> (right panel), that you must run to export the raster.</p>
+<pre><code>// Export aspect raster, specifying scale and region.
+Export.image.toDrive({
+  image: aspect,
+  description: &#39;aspect_aoi&#39;,
+  scale: 30,
+  region: geometry
+});
+</code></pre>
+</div>
