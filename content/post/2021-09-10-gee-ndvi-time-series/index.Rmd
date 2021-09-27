@@ -1,5 +1,5 @@
 ---
-title: ' [GEE] NDVI time series'
+title: '[GEE] NDVI time series'
 author: Benjamin Nowak
 date: '2021-09-10'
 slug: gee-ndvi-time-series
