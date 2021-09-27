@@ -9,6 +9,7 @@ tags:
   - 'Elevation'
   - 'DEM'
   - 'Remote Sensing'
+summary: 'In this tutorial, we will see how we can use the Google Earth Engine to derived elevation, slope and aspect from the Digital Elevation Model of NASA Space Shuttle Radar Topography Mission (SRTM).'
 ---
 
 A Digital Elevation Model (DEM) is a grid providing elevation data. Many terrain features, such as slope or aspect, may be derived from a DEM. There are several ways to generate DEM. The traditional one is to interpolate elevation from point data sets coming from altimeter or GPS data. But now most of the models are created from remote sensed data.
