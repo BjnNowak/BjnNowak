@@ -9,7 +9,7 @@ tags:
   - 'spatial'
   - 'TidyTuesday'
   - 'tidyverse'
-summary: "{geofacet} allows to position plots in a similar pattern to the original geography, which provide more information than classical chloropleths but is also harder to read. In this tutorial we will see a simple approach to mix both approaches."
+summary: "{geofacet} allows to position plots in a similar pattern to the original geography, which provide more information than classical chloropleths but is also harder to read. In this tutorial we will see a simple method to mix both approaches."
 ---
 
 The [{geofacet}](https://cran.r-project.org/web/packages/geofacet/vignettes/geofacet.html) extension provide a **facet_geo()** function which allows to position plots in a similar pattern to the original geography. The amount of information given by the whole plot is thus more important than on classical chloropleths, where the different entities of the map are colored according to a single variable. But such plots are harder to read and less accessible than chloropleths. 
