@@ -1,0 +1,391 @@
+---
+title: '[R] Network analysis with {tidygraph}'
+author: Benjamin Nowak
+date: '2021-09-30'
+slug: r-network-analysis-with-tidygraph
+categories:
+  - ['R']
+tags:
+  - 'Network analysis'
+  - 'tidyverse'
+  - 'tidygraph'
+summary: "{tidygraph} allows to use tidyverse tools to perform network analysis. In this tutorial how we can produce and analyze a network of co-authorship of scientific paper."
+---
+
+
+
+<p>A few years ago we published <a href="https://www.sciencedirect.com/science/article/abs/pii/S0167880915000651">an article assessing nutrient recycling between farms in different territories</a>. This evaluation was based on network analysis of material exchanges between farms. On the plot below, each dot (node in network analysis) is a farm and the arrows (edges) show material exchanges, such as manure, straw…, between these farms.</p>
+<p><img src="/MapChallenge_Connections.PNG" alt="" style="display: block;margin:auto;width:100%; min-width: 150px;"></p>
+<p>This analysis was then performed with {igraph}. Today, the <a href="https://www.data-imaginist.com/2017/introducing-tidygraph/">{tidygraph}</a> package created by Thomas Lin Pedersen allows to use the tidyverse extensions to perform network analysis. In this tutorial, we will see how we can produce and analyze a network of co-authorship of scientific paper, using the TidyTuesday dataset about <a href="https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-09-28/readme.md">papers of the National Bureau of Economic Research</a>.</p>
+<div id="plotting-the-graph" class="section level1">
+<h1>1. Plotting the graph</h1>
+<pre class="r"><code>library(tidyverse)
+# Load data 
+papers &lt;- readr::read_csv(&#39;https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-28/papers.csv&#39;)
+authors &lt;- readr::read_csv(&#39;https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-28/authors.csv&#39;)
+paper_authors &lt;- readr::read_csv(&#39;https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-28/paper_authors.csv&#39;)
+
+head(paper_authors)</code></pre>
+<pre><code>## # A tibble: 6 x 2
+##   paper author 
+##   &lt;chr&gt; &lt;chr&gt;  
+## 1 w0001 w0001.1
+## 2 w0002 w0002.1
+## 3 w0003 w0003.1
+## 4 w0004 w0004.1
+## 5 w0005 w0005.1
+## 6 w0006 w0006.1</code></pre>
+<p>We could create a co-authorship network straight from the <strong>paper_authors</strong> table that makes the link between the papers and their authors. However, it is a large data table:</p>
+<pre class="r"><code>dim(paper_authors)</code></pre>
+<pre><code>## [1] 67090     2</code></pre>
+<p>Network analysis on this type of data can be tedious, and requires some computing power. To make things easier, we will work on a subset: papers published in 1995.</p>
+<pre class="r"><code>paper_authors_95&lt;-paper_authors%&gt;%
+  # Merge paper table to get year of publication
+  left_join(papers)%&gt;%
+  # Filter by year
+  filter(year==1995)
+
+head(paper_authors_95)</code></pre>
+<pre><code>## # A tibble: 6 x 5
+##   paper author   year month title                                               
+##   &lt;chr&gt; &lt;chr&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;                                               
+## 1 w4758 w0388.2  1995     3 Bilateralism and Regionalism in Japanese and U.S. T~
+## 2 w4758 w4758.1  1995     3 Bilateralism and Regionalism in Japanese and U.S. T~
+## 3 w4982 w2677.2  1995     1 Explaining Forward Exchange Bias..Intraday          
+## 4 w4982 w3385.1  1995     1 Explaining Forward Exchange Bias..Intraday          
+## 5 w4983 w0164.1  1995     1 Implementing Free Trade Areas: Rules of Origin and ~
+## 6 w4983 w1535.1  1995     1 Implementing Free Trade Areas: Rules of Origin and ~</code></pre>
+<p>For this subset, we must now create a table summarizing the connections between the different authors, based on co-published articles. This part is a bit technical as we want (i) to keep authors with only single authored papers, in order to highlight nodes with no connection in the network and (ii) to avoid double counting of collaborations between two authors.</p>
+<p>To facilitate author sorting in the next step, we will start by creating a new variable converting author references into integers.</p>
+<pre class="r"><code># Transform author references to integer
+edges_list &lt;- paper_authors_95 %&gt;%
+  mutate(author_id = as.integer(as.factor(author)))</code></pre>
+<p>We are now ready to create a table summarizing all connections between authors:</p>
+<pre class="r"><code>edges_list &lt;- edges_list %&gt;%
+  # Create one row for each collaboration between 2 authors
+  left_join(edges_list, by=&#39;paper&#39;) %&gt;%
+  # Count number of collaboration for each pair
+  count(author_id.x, author_id.y)%&gt;%
+  # Create two new variables to identify max and min author for each pair 
+  mutate(
+    max=pmax(author_id.x,author_id.y),
+    min=pmin(author_id.x,author_id.y)
+  )%&gt;%
+  # Combine them in a &quot;check&quot; variable
+  unite(check, c(min, max), remove = FALSE) %&gt;% 
+  # Remove duplicates of the &quot;check&quot; variable
+  distinct(check, .keep_all = TRUE) %&gt;%
+  # Set n to 0 for single authored papers
+  # (this avoid to count them as connection)
+  mutate(n=case_when(
+    (author_id.x==author_id.y)~as.integer(0),
+    TRUE~n)
+  )%&gt;%
+  # Rename columns
+  # ({tidygraph} requires &quot;from&quot; and &quot;to&quot;)
+  rename(
+    from=author_id.x,
+    to=author_id.y
+  )%&gt;%
+  # Select columns of interest
+  select(from,to,n)
+
+edges_list</code></pre>
+<pre><code>## # A tibble: 982 x 3
+##     from    to     n
+##    &lt;int&gt; &lt;int&gt; &lt;int&gt;
+##  1     1     1     0
+##  2     1    10     1
+##  3     2     2     0
+##  4     2    12     2
+##  5     3     3     0
+##  6     4     4     0
+##  7     4     5     1
+##  8     5     5     0
+##  9     6     6     0
+## 10     7     7     0
+## # ... with 972 more rows</code></pre>
+<p>This table summarize all the edges of the network. We can now convert this table into a network with the <strong>as_tbl_graph()</strong> function of the {tidygraph} extension (for this function to work, the input table must have at least two columns identified as “to” and “from”).</p>
+<pre class="r"><code>library(tidygraph)
+network &lt;- as_tbl_graph(edges_list, directed = FALSE)
+network</code></pre>
+<pre><code>## # A tbl_graph: 535 nodes and 982 edges
+## #
+## # An undirected multigraph with 191 components
+## #
+## # Node Data: 535 x 1 (active)
+##   name 
+##   &lt;chr&gt;
+## 1 1    
+## 2 2    
+## 3 3    
+## 4 4    
+## 5 5    
+## 6 6    
+## # ... with 529 more rows
+## #
+## # Edge Data: 982 x 3
+##    from    to     n
+##   &lt;int&gt; &lt;int&gt; &lt;int&gt;
+## 1     1     1     0
+## 2     1    10     1
+## 3     2     2     0
+## # ... with 979 more rows</code></pre>
+<p>As we can see above, the object <strong>tbl_graph</strong> returned by the <strong>as_tbl_graph()</strong> function is composed of two tables: one with the nodes of the network and another with the edges. We may now plot this network with {ggraph}:</p>
+<pre class="r"><code># Set theme
+custom_theme &lt;- theme_minimal() +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    panel.grid = element_blank(),
+    panel.grid.major = element_blank()
+  )
+
+library(ggraph)
+ggraph(
+  # Input data
+  graph= network, 
+  # Algorithms to place points (here Kamada-Kawai)
+  layout = &quot;kk&quot;) +
+  geom_node_point() +
+  geom_edge_diagonal(color = &quot;dimgrey&quot;, alpha = 0.8)+
+  labs(
+    title = &#39;Co-authorship network for year 1995&#39;,
+    subtitle = &#39;Algorithm: Kamada-Kawai&#39;
+  )+
+ custom_theme</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>Note that the graph of the network is highly dependent on the algorithm selected for the layout. The 13 different layout algorithms for classic node-edge diagrams are referenced <a href="https://www.data-imaginist.com/2017/ggraph-introduction-layouts/">here</a>.</p>
+<p>Below is the same network, but plotted with another algorithm:</p>
+<pre class="r"><code>ggraph(
+  graph= network, 
+  layout = &quot;fr&quot;) +
+  geom_node_point() +
+  geom_edge_diagonal(color = &quot;dimgrey&quot;, alpha = 0.8)+
+  labs(
+    title = &#39;Co-authorship network for year 1995&#39;,
+    subtitle = &#39;Algorithm: Fruchterman-Reingold.&#39;
+  )+
+ custom_theme</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+</div>
+<div id="speed-up-the-workflow" class="section level1">
+<h1>2. Speed up the workflow</h1>
+<p>As seen above, there are multiple steps to convert our data set to a edges list that can be convert to a network with {ggraph}. To speed up the process, we can create a function, specific to this case study, that will create the corresponding network for each year:</p>
+<pre class="r"><code>fun_net &lt;- function(yr){
+  # Filter paper by years
+  paper_authors_year&lt;-paper_authors%&gt;%
+    left_join(papers)%&gt;%
+    filter(year==yr)
+  # Convert author references to integers
+  edges_list &lt;- paper_authors_year %&gt;%
+    mutate(author_id = as.integer(as.factor(author)))
+  # Build edges list
+  edges_list &lt;- edges_list %&gt;%
+    left_join(edges_list, by=&#39;paper&#39;) %&gt;%
+    count(author_id.x, author_id.y)%&gt;%
+    mutate(
+      max=pmax(author_id.x,author_id.y),
+      min=pmin(author_id.x,author_id.y)
+    )%&gt;%
+    unite(check, c(min, max), remove = FALSE) %&gt;% 
+    distinct(check, .keep_all = TRUE) %&gt;%
+    mutate(n=case_when(
+      (author_id.x==author_id.y)~as.integer(0),
+      TRUE~n)
+    )%&gt;%
+    rename(
+      from=author_id.x,
+      to=author_id.y
+    )%&gt;%
+    select(from,to,n)
+  # Convert to network
+  network &lt;- as_tbl_graph(edges_list, directed = FALSE)
+  
+  return(network)
+}</code></pre>
+<p>Using this function, it is easier to compare networks between different years:</p>
+<pre class="r"><code># Load patchwork to assemble plots
+library(patchwork)
+
+# Create plot for year 1980
+p80 &lt;- ggraph(
+  graph= fun_net(1980), 
+  layout = &quot;fr&quot;) +
+  geom_node_point() +
+  geom_edge_diagonal(color = &quot;dimgrey&quot;, alpha = 0.8)+
+ custom_theme
+
+# Create plot for year 2000
+p00 &lt;- ggraph(
+  graph= fun_net(2000), 
+  layout = &quot;fr&quot;) +
+  geom_node_point() +
+  geom_edge_diagonal(color = &quot;dimgrey&quot;, alpha = 0.8)+
+ custom_theme
+
+# Set layout
+layout&lt;-c(
+  area(t=1,l=1,b=4,r=2),
+  area(t=1,l=3,b=4,r=4)
+)
+# Assemble plots
+p80+p00+
+  plot_layout(design=layout)+
+  plot_annotation(
+    title = &quot;Evolution of co-authorship networks for NBER papers&quot;,
+    tag_levels = list(c(&#39;1980&#39;, &#39;2000&#39;))
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+</div>
+<div id="network-metrics" class="section level1">
+<h1>3. Network metrics</h1>
+<p>We will now see how we can calculate some metrics for this network.</p>
+<p>Let’s start with metrics for the whole network:</p>
+<pre class="r"><code>net80 &lt;- fun_net(1980)
+net00 &lt;- fun_net(2000)
+
+# Load {igraph} to get additional functions
+library(igraph)
+# Density: Proportion of possible connections that exist
+Density&lt;-rbind(
+  igraph::edge_density(net80),
+  igraph::edge_density(net00)
+)
+# Diameter: Longest shortest path across network
+Diameter&lt;-rbind(
+  with_graph(net80, graph_diameter()),
+  with_graph(net00, graph_diameter())
+)
+# Mean distance between two nodes 
+Distance&lt;-rbind(
+  with_graph(net80, graph_mean_dist()),
+  with_graph(net00, graph_mean_dist())
+)
+# Transitivity:  probability for adjacent nodes to be interconnected
+Transitivity&lt;-rbind(
+  igraph::transitivity(net80),
+  igraph::transitivity(net00)
+)
+
+tibble(
+  Year=rbind(1980,2000),Density,Diameter,Distance,Transitivity
+)</code></pre>
+<pre><code>## # A tibble: 2 x 5
+##   Year[,1] Density[,1] Diameter[,1] Distance[,1] Transitivity[,1]
+##      &lt;dbl&gt;       &lt;dbl&gt;        &lt;dbl&gt;        &lt;dbl&gt;            &lt;dbl&gt;
+## 1     1980     0.0208             4         1.43            0.589
+## 2     2000     0.00490            7         2.51            0.534</code></pre>
+<p>We can also calculate metrics by node. In network analysis, the most common metric for each node is degree, that is the number of connections for each node. We may compute this value for our networks. As <strong>tbl_graph</strong> objects are composed of two tables (one for nodes, one for edges), we need to specify the one we want to modify with <strong>activate()</strong>, as demonstrated below:</p>
+<pre class="r"><code># Start with network for year 1980:
+net80 &lt;- net80 %&gt;%
+  # First activate edges to set weights of each connection
+  activate(edges) %&gt;%
+  mutate(weights = case_when(
+    # Solo-authored set to weight=0
+    n==0 ~ 0,
+    # Weight = 1 for all others collaborations
+    TRUE ~1
+  ))%&gt;%
+  # Now activate nodes
+  activate(nodes)%&gt;%
+  # Compute degree for each node
+  mutate(deg = centrality_degree(weights = weights))%&gt;%
+  # Find author with most collaboration
+  # (highest-degree node)
+  mutate(max_deg = max(deg))%&gt;%
+  mutate(max_author = case_when(
+    deg == max_deg ~ 1,
+    TRUE ~ 0
+  ))
+
+# Same steps for year 2000
+net00 &lt;- net00 %&gt;%
+  activate(edges) %&gt;%
+  mutate(weights = case_when(
+    n==0 ~ 0,
+    TRUE ~1
+  ))%&gt;%
+  activate(nodes)%&gt;%
+  mutate(deg = centrality_degree(weights = weights))%&gt;%
+  mutate(max_deg = max(deg))%&gt;%
+  mutate(max_author = case_when(
+    deg == max_deg ~ 1,
+    TRUE ~ 0
+  ))</code></pre>
+<p>We may now calculate the average degree for each network.</p>
+<pre class="r"><code>stat_deg_80 &lt;- net80 %&gt;%
+  activate(nodes)%&gt;%
+  as_tibble()%&gt;%
+  summarise(
+    year = &#39;1980&#39;,
+    mean_deg = mean(deg),
+    max_deg = mean(max_deg))
+
+stat_deg_00 &lt;- net00 %&gt;%
+  activate(nodes)%&gt;%
+  as_tibble()%&gt;%
+  summarise(
+    year = &#39;2000&#39;,
+    mean_deg = mean(deg),
+    max_deg = mean(max_deg))
+
+bind_rows(stat_deg_80,stat_deg_00)</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   year  mean_deg max_deg
+##   &lt;chr&gt;    &lt;dbl&gt;   &lt;dbl&gt;
+## 1 1980      1.22       5
+## 2 2000      1.91      17</code></pre>
+<p>We may see that the number of connection is increasing between 1980 and 2000. For papers published in 2000, each author collaborated on average with approximately two other authors.</p>
+<p>We may now add these information to the plots.</p>
+<pre class="r"><code>p80 &lt;- ggraph(
+  net80, 
+  layout = &quot;kk&quot;) +
+  # Add 
+  geom_node_point(aes(col=deg,size=max_author)) +
+  scale_color_gradient2(
+    low=&quot;#58EFEC&quot;,mid=&quot;#A0A6BE&quot;,high=&quot;#E85C90&quot;,midpoint = 4
+  )+
+  geom_edge_diagonal(color = &quot;dimgrey&quot;, alpha = 0.8)+
+  guides(size=FALSE,color=FALSE)+
+  custom_theme
+
+# Create plot for year 2000
+p00 &lt;- ggraph(
+  net00, 
+  layout = &quot;kk&quot;) +
+  geom_node_point(aes(col=deg,size=max_author)) +
+  scale_color_gradient2(
+    low=&quot;#58EFEC&quot;,mid=&quot;#A0A6BE&quot;,high=&quot;#E85C90&quot;,midpoint = 4
+  )+
+  guides(size=FALSE)+
+  labs(color=&quot;Degree&quot;)+
+  geom_edge_diagonal(color = &quot;dimgrey&quot;, alpha = 0.8)+
+ custom_theme
+
+# Assemble plots
+p80+p00+
+  plot_layout(
+    design=layout,
+    guides = &quot;collect&quot;)+
+  plot_annotation(
+    title = &quot;Evolution of co-authorship networks for NBER papers&quot;,
+    subtitle = &quot;Biggest points show node with maximum degree&quot;,
+    tag_levels = list(c(&#39;1980&#39;, &#39;2000&#39;))
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p>More metrics regarding these networks are described in <a href="https://bldavies.com/blog/female-representation-collaboration-nber/">Ben Davies’ blog post</a> .</p>
+</div>
+<div id="add-more-data" class="section level1">
+<h1>4. Add more data</h1>
+<p>Finally, we can use the tidyverse tools to add more data to the network (such as authors’ gender). To do so, we need to activate the nodes table, then join the table with selected features, <a href="https://github.com/BjnNowak/TidyTuesday/blob/main/SC_Paper.R">as performed to create the plot below</a>.
+<img src="Tidy_Network.png" /></p>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<ul>
+<li><p>Davies B. (2021) <a href="https://bldavies.com/blog/female-representation-collaboration-nber/">Female representation and collaboration at the NBER</a></p></li>
+<li><p>Nowak B. <em>et al.</em> <a href="https://www.sciencedirect.com/science/article/abs/pii/S0167880915000651">Nutrient recycling in organic farming is related to diversity in farm types at the local level</a></p></li>
+<li><p>Pedersen TL., <a href="https://www.data-imaginist.com/2017/ggraph-introduction-layouts/">Introduction to ggraph: Layouts</a></p></li>
+</ul>
+</div>
