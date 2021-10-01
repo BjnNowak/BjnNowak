@@ -397,7 +397,8 @@ More metrics regarding these networks are described in [Ben Davies' blog post](h
 # 4. Add more data
 
 Finally, we can use the tidyverse tools to add more data to the network (such as authors' gender). To do so, we need to activate the nodes table, then join the table with selected features, [as performed to create the plot below](https://github.com/BjnNowak/TidyTuesday/blob/main/SC_Paper.R).
-![](Tidy_Network.png)
+
+![](/Tidy_Network.png)
 
 # References
 
