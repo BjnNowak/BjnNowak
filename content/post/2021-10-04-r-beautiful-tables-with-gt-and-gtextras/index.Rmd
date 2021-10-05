@@ -9,14 +9,14 @@ tags:
   - 'table'
   - 'gt'
   - 'tidyverse'
-summary: "The {gtExtras} extension adds many customization options for tables created with the {gt} extension. In this tutorial we will illustrate some possibilities of these packages on a dataset about Tour de riders."
+summary: "The {gtExtras} extension adds many customization options for tables created with the {gt} extension. In this tutorial we will illustrate some possibilities of these packages on a dataset about the Tour de France riders."
 ---
 
 The [{gt}](https://gt.rstudio.com/) extension already allowed to easily create tables from raw dataset, but now the [{gtExtras}](https://jthomasmock.github.io/gtExtras/index.html) extension adds many customization options. Here we will illustrate the possibilities of these packages with [TidyTuesday dataset on Tour de France riders](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-04-07/readme.md), extracted from [Alastair Rushworth's {tdf} extension](https://github.com/alastairrushworth/tdf). 
 
 # 1. Tables with text
 
-We will start by extracting the data.
+We will start by loading the data.
 
 ```{r, message=FALSE, warning=FALSE}
 
@@ -156,11 +156,11 @@ tab%>%
   )
 
 ```
-[Anatole Novak](https://en.wikipedia.org/wiki/Anatole_Novak) is my grand father. He won one Tour de France stage in his career, and helped Anquetil win several Tour de France. We will see how many in the next table!
+[Anatole Novak](https://en.wikipedia.org/wiki/Anatole_Novak) is my grand father. He won one Tour de France stage in 1961, so this is the reason I chose this year as an example. In his career, he also helped Anquetil win several Tour de France. We will see how many in the next table!
 
 # 2. Add images to table
 
-In this second part, we will see more formatting options, in particular how we can add images to a table. 
+In this second part, we will see more formatting options, in particular how we can add images to a table.
 
 We will now look at the riders who have won the most Tour de France. This information may be extracted from the *tdf_winners* dataset:
 
@@ -218,7 +218,7 @@ most_wins<-most_wins%>%
 
 ```
 
-Preparation of the dataset is now complete, we may create the table. At the same time, we will discover a new function, [gt_merge_stacks()](https://jthomasmock.github.io/gtExtras/reference/gt_merge_stack.html), which allows to merge two columns (here riders' name and nickname).
+Preparation of the dataset is now complete, we may create the table. At the same time, we will discover a new function, [gt_merge_stacks()](https://jthomasmock.github.io/gtExtras/reference/gt_merge_stack.html), which allows to merge two columns (here riders name and nickname).
 
 ```{r, message=FALSE, warning=FALSE}
 
@@ -233,7 +233,7 @@ most_wins%>%
 
 ```
 
-The next column to customize is now the riders' nationality: we will replace the name of the countries by an image of their respective flags. We can not do this directly from the table, we have to go back to the dataset to replace the name of the countries by the link to the flag image.  
+The next column to customize is now the riders nationality: we will replace the name of the countries by an image of their respective flags. We can not do this directly from the table, we have to go back to the dataset to replace the name of the countries by the link to the flag image.  
 
 ```{r, message=FALSE, warning=FALSE}
 
@@ -451,7 +451,7 @@ most_wins%>%
   # Merge riders' name and nickname on same column
   gtExtras::gt_merge_stack(col1 = Rider, col2 = Nickname)%>%
   # Add flag images
-  gtExtras::gt_img_rows(columns = Country, height = 15)%>%
+  gtExtras::gt_img_rows(columns = Country, height = 20)%>%
   # Add yellow jerseys
   gtExtras::gt_fa_repeats(
     column=Titles,palette = "orange",
