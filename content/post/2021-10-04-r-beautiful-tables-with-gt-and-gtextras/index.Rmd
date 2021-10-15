@@ -326,7 +326,11 @@ year_wins%>%
     # Color for min/max points
     range_colors=c("#ABB4C4","#ef233c"),
     # Line color
-    line_color="#DBDFE6")%>%
+    line_color="#DBDFE6",
+    # Hide labels 
+    # (for latest versions of {gtExtras}) only:
+    # label=FALSE
+    )%>%
   tab_header(title = "Titles timeline")%>%
   gtExtras::gt_theme_nytimes()
 
