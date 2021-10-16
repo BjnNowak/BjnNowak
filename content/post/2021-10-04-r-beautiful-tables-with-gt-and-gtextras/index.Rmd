@@ -314,7 +314,7 @@ year_wins
 
 ```
 
-Once the list is created, we may plot the timeline in a table with [gt_sparkline()](https://jthomasmock.github.io/gtExtras/reference/gt_sparkline.html).
+Once the list is created, we may plot the timeline in a table with [gt_sparkline()](https://jthomasmock.github.io/gtExtras/reference/gt_sparkline.html). With the latest versions of the package, labels may be displayed on the x-axis but they may be turned off with label=FALSE.
 
 ```{r, message=FALSE, warning=FALSE}
 
