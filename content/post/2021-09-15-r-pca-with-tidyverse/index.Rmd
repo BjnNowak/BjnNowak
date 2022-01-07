@@ -12,6 +12,8 @@ tags:
 summary: "In this post, we will perform a Principal Component Analysis (PCA) to explore the evolution of songs' features over the years, using {tidyverse} tools and syntax "
 ---
 
+TESTTTT
+
 In this post, we will perform a Principal Component Analysis (PCA) to explore the evolution of songs' features over the years. We will see how we can use the {tidyverse} tools and syntax to perform this PCA.
 
 For this, we will use the TidyTuesday dataset of [Top 100 Billboard](https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-09-14/readme.md). To this data set is associated a characterization of the songs according to several features (danceability, mode, tempo...), provided by the [Spotify API](https://developer.spotify.com/documentation/web-api/reference/#endpoint-get-audio-features).
