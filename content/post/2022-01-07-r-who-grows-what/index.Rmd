@@ -8,7 +8,7 @@ categories:
 tags:
   - 'map'
   - 'crops'
-summary: 'In this post, we will see how we can create an interactive map.'
+summary: 'In this post, we will see how we can create an interactive map of most cultivated crops.'
 ---
 
 ## A map of most cultivated crops
