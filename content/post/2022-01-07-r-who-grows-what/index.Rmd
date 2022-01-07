@@ -4,14 +4,14 @@ author: Benjamin Nowak
 date: '2022-01-07'
 slug: r-who-grows-what
 categories:
-  - ['R']
+  - 'R'
 tags:
   - 'map'
   - 'crops'
 summary: 'In this post, we will see how we can create an interactive map of most cultivated crops.'
 ---
 
-# Map of most cultivated crops testr
+# Map of most cultivated crops
 
 This map shows the most cultivated crop for each country (by harvested area). The most common crops are mainly cereals (<span style='color:#FFE066;'>**wheat**</span>, <span style='color:#419D78'>**maize**</span>, <span style='color:#264653'>**rice**</span>, <span style='color:#F9A061;'>**barley**</span> and <span style='color:#A15856;'>**millet**</span>), with also a strong share of <span style='color:#70C1B3;'>**soybeans**</span> in the Americas. Beyond these main crops, some countries are specialized in <span style='color:#d4a373;'>**other crops**</span> (such as coffee or oil palm).
 
@@ -163,11 +163,13 @@ test <- states%>%
   mutate(lab2=glue::glue(
     '<span style="font-weight: 900;">{Area}</span>
     <br>
+    <div style="text-align:left;">
     1. {Item} ({Surface} Mha)</body>
     <br>
     2. {crop2} ({Surface2} Mha)</body>
     <br>
     3. {crop3} ({Surface3} Mha)</body>
+    </div>
     '
   ))
 
@@ -220,4 +222,4 @@ x
 ```
 
 
-**Data:** [FAO](https://www.fao.org/faostat/en/#home) | **Map:** [Benjamin Nowak](https://bjnnowak.netlify.app/about/)
+**Data:** [FAO](https://www.fao.org/faostat/en/#home) 
