@@ -1,5 +1,5 @@
 ---
-title: '[R] Where does your coffee comes from?'
+title: '[R] Where does your coffee come from?'
 author: Benjamin Nowak
 date: '2022-01-07'
 slug: r-who-grows-what
