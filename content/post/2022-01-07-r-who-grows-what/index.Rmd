@@ -1,19 +1,190 @@
 ---
-title: '[R] Who grows what?'
+title: '[R] Where does your coffee comes from?'
 author: Benjamin Nowak
 date: '2022-01-07'
 slug: r-who-grows-what
 categories:
   - 'R'
 tags:
-  - 'map'
+  - 'plot'
+  - 'interactive'
   - 'crops'
-summary: 'In this post, we will see how we can create an interactive map of most cultivated crops.'
+summary: 'In this post, we will see how we can convert a static plot created with {ggplot2} to an interactive plot with {ggiraph}, using the example of the top 10 coffee-growing countries.'
 ---
 
-# Map of most cultivated crops
+In this post, we will see how to create an interactive graph with the [{ggiraph}](https://davidgohel.github.io/ggiraph/index.html) package from David Gohel. For this, we will use [FAO Stats data](https://www.fao.org/faostat/fr/) to highlight the main coffee growers in the world. 
 
-This map shows the most cultivated crop for each country (by harvested area). The most common crops are mainly cereals (<span style='color:#FFE066;'>**wheat**</span>, <span style='color:#419D78'>**maize**</span>, <span style='color:#264653'>**rice**</span>, <span style='color:#F9A061;'>**barley**</span> and <span style='color:#A15856;'>**millet**</span>), with also a strong share of <span style='color:#70C1B3;'>**soybeans**</span> in the Americas. Beyond these main crops, some countries are specialized in <span style='color:#d4a373;'>**other crops**</span> (such as coffee or oil palm).
+# 1. Data preparation
+
+For this tutorial, we will also need the {tidyverse} libraries for data preparation. Let's start by loading the data that are [available online](https://raw.githubusercontent.com/BjnNowak/playground/main/data/all_crops_area.csv) in one of my Github repo.
+
+```{r, message=FALSE, warning=FALSE}
+
+# Load libraries
+library(tidyverse)
+
+# Load data: crop harvested areas in 2018
+data <- readr::read_csv(
+  'https://raw.githubusercontent.com/BjnNowak/playground/main/data/all_crops_area.csv'
+)
+
+head(data)
+
+```
+
+Then, we will keep only the 10 countries with the most important surfaces cultivated in coffee (by decreasing order).
+
+```{r, message=FALSE, warning=FALSE}
+
+# Keep 10 countries with bigger coffee area
+clean <- data%>%
+  filter(Item=="Coffee, green")%>%
+  arrange(-Value)%>%
+  head(10)%>%
+  # Convert area to Mha
+  mutate(Surface=Value/1000000)%>%
+  select(Country=Area,Surface)
+
+```
+
+# 2. From static to interactive plot
+
+We will now create the "static" version of the graph that we want: a barplot showing the cultivated areas per country.
+
+```{r, message=FALSE, warning=FALSE}
+
+# Make static plot
+ggplot(data=clean,aes(
+    y=fct_reorder(Country,Surface),
+    x=Surface))+
+  geom_col(fill="chocolate4")+
+  labs(
+    title="Main coffee growers",
+    x="Surface (Mha)",
+    y=""
+  )+
+  theme_light()
+
+```
+
+With {ggraph}, it is then very easy to convert a static graph into an interactive version. There are two things to change: 
+
+- Add <b>_interactive</b> to the **geom_** you are using
+- Specify the label you want to display with the tooltip attribute in the aes()
+
+
+```{r, message=FALSE, warning=FALSE}
+
+library(ggiraph)
+
+# Plot with interactive geom_
+plot1<-ggplot(data=clean,aes(
+    y=fct_reorder(Country,Surface),
+    x=Surface))+
+  geom_col_interactive(
+    # Specify label in aes()
+    # with tooltip
+    aes(tooltip=Surface),
+    fill="chocolate4"
+  )+
+  labs(
+    title="Main coffee producers",
+    x="Surface (Mha)",
+    y=""
+  )+
+  theme_light()
+
+```
+
+We may then display the interactive plot as follows:
+
+```{r, message=FALSE, warning=FALSE}
+
+# Create a girafe object   
+i1 <- ggiraph::girafe( 
+  ggobj = plot1
+)
+
+i1
+
+```
+
+# 3. Customize labels
+
+The first step of customization will be to personalize the general aspect of the labels thanks to a small **css script** that we can then add when creating the ggirafe object.
+
+```{r, message=FALSE, warning=FALSE}
+
+# css for general label
+custom_css <- "
+  background-color:cornsilk;
+  color:black;
+  padding:10px;
+  border-radius:5px;"
+
+i1b <- ggiraph::girafe(
+  ggobj = plot1,
+  # Add custom css to girafe object
+  options = list(opts_tooltip(css = custom_css))
+)
+
+i1b
+
+```
+
+But the labels are not very clear and only give the total area cultivated in coffee, without specifying the unit for example. We will now create labels with a more complete and detailed text. 
+
+To do this, before creating our plot, we will add a new column in our data set that will contain the text we want to display, specifying with HTML and css code the presentation we want.
+
+
+```{r, message=FALSE, warning=FALSE}
+
+# Create custom label
+clean_label <- clean %>%
+  # Round area harvested (2 decimals only)
+  mutate(Surf_round = round(Surface,2))%>%
+  # Add country rank
+  mutate(Rank = row_number())%>%
+  # Add custom label
+  mutate(lab=glue::glue(
+    "<body><span style='font-weight: 900;'>{Rank}. {Country}</span>
+    <br>{Surf_round} Mha </body>"))
+
+
+```
+
+We are now ready to create a new plot using this new label.
+
+```{r, message=FALSE, warning=FALSE}
+
+# Make plot with new new dataset 
+# and tooltip with new label
+plot2<-ggplot(data=clean_label,aes(
+  y=fct_reorder(Country,Surface),
+  x=Surface))+
+  geom_col_interactive(
+    aes(tooltip=lab),
+    fill="chocolate4"
+  )+
+  labs(
+    title="Main coffee producers",
+    x="Surface (Mha)",
+    y=""
+  )+
+  theme_light()
+
+i2 <- girafe(
+  ggobj = plot2,
+  options = list(opts_tooltip(css = custom_css))
+)
+
+i2
+
+```
+
+# 4. Interactive map of most cultivated crops
+
+To finish this tutorial, here is an example of an intercative map created with the same method. This map shows the most cultivated crop for each country (by harvested area). The most common crops are mainly cereals (<span style='color:#FFE066;'>**wheat**</span>, <span style='color:#419D78'>**maize**</span>, <span style='color:#264653'>**rice**</span>, <span style='color:#F9A061;'>**barley**</span> and <span style='color:#A15856;'>**millet**</span>), with also a strong share of <span style='color:#70C1B3;'>**soybeans**</span> in the Americas. Beyond these main crops, some countries are specialized in <span style='color:#d4a373;'>**other crops**</span> (such as coffee or oil palm).
 
 ```{r map, warning=FALSE, message=FALSE, echo=FALSE}
 # Load libraries
@@ -222,4 +393,8 @@ x
 ```
 
 
-**Data:** [FAO](https://www.fao.org/faostat/en/#home) 
+You may find the full code for this example [here.](https://github.com/BjnNowak/TidyTuesday/blob/main/SC_CropMap_Dynamic.R)
+
+# References
+
+Goehel, D., [ggiraph makes ‘ggplot’ graphics interactive.](https://davidgohel.github.io/ggiraph/index.html)
