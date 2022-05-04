@@ -11,6 +11,12 @@ My teaching and research activities focus on remote sensing, soil sciences and b
 
 # Peer-reviewed publications
 
+* [Assessment of the diversity of crop rotations based on network analysis indicators](https://www.sciencedirect.com/science/article/pii/S0308521X22000385?dgcid=author) (2022). <u>B Nowak, Audrey Michaud, Gaëlle Marliac</u>. *Agricultural Systems*.
+
+  <img src="/GraphicalAbstract.png" alt="" style="display: block;margin:auto;width:80%; min-width: 150px;">
+
+  <p style="color: #5f464b; background-color: #ece4b7; font-family: Roboto; font-style: italic; padding: 2px 10px" > Simulations based on these networks allowed to estimate the return time of a given crop on the same field. For soft winter wheat, this indicator was strongly correlated with the use of phytosanitary products.</p>
+
 * [Territorial mapping to increase soil carbon storage](https://www.tandfonline.com/doi/full/10.1080/21681376.2021.1960889?scroll=top&needAccess=true) (2021). <u>B Nowak</u>. *Regional Studies, Regional Science*.
 
   <img src="/rsrs.jpeg" alt="" style="display: block;margin:auto;width:80%; min-width: 150px;">
