@@ -15,6 +15,7 @@
  </table>
 
 <br>
+
 ## List of teaching materials available on GitHub
 
 ### Geographic Information Systems
