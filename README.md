@@ -2,6 +2,7 @@
 
 <div id="header" align="center">
   ### Welcome!
+  <br>
   <span style="font-weight:bold;">Welcome!</span>
   <br>
   <img src="https://github.com/BjnNowak/gis/raw/main/fig/gis/NDVI.gif" width="200"/>
