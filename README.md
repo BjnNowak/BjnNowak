@@ -30,4 +30,4 @@
 
 <br>
 
-You may find additional content on [my website](https://bjnnowak.netlify.app/).
+<i>You may find additional content on [my website](https://bjnnowak.netlify.app/).</i>
