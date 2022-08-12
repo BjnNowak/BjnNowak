@@ -1,5 +1,8 @@
 ### Welcome!
 
+<div id="header" align="center">
+  <img src="https://github.com/BjnNowak/gis/raw/main/fig/gis/NDVI.gif" width="100"/>
+</div>
 
 <div id="badges">
   <a href="https://www.researchgate.net/profile/Benjamin-Nowak-2">
