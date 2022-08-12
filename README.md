@@ -13,6 +13,13 @@
   </tr>
  </table>
 
+<p align="center">
+  <img alt="Light" src="https://github.com/BjnNowak/gis/raw/main/fig/gis/NDVI.gif" width="200">
+&nbsp; &nbsp; &nbsp; &nbsp;
+  My name is **Benjamin Nowak** and I am a French lecturer in agronomy. My teaching and research activities focus on remote sensing, soil sciences and biogeochemical cycles (mainly carbon, nitrogen and phosphorus)
+</p>
+
+
 <div id="badges">
   <a href="https://www.researchgate.net/profile/Benjamin-Nowak-2">
     <img src="https://img.shields.io/badge/ResearchGate-00ccbb?logo=ResearchGate&logoColor=white" alt="Research Gate Badge"/>
