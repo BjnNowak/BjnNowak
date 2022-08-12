@@ -4,7 +4,7 @@
   <a href="https://www.researchgate.net/profile/Benjamin-Nowak-2">
     <img src="https://img.shields.io/badge/ResearchGate-00ccbb?logo=ResearchGate&logoColor=white" alt="Research Gate Badge"/>
   </a>
-   <a href="https://www.researchgate.net/profile/Benjamin-Nowak-2">
+   <a href="https://scholar.google.com/citations?user=YfbhYDIAAAAJ&hl=en">
     <img src="https://img.shields.io/badge/GoogleScholar-ea4335?logo=GoogleScholar&logoColor=white" alt="Google Scholar Badge"/>
   </a>
 </div>
