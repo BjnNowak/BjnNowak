@@ -2,7 +2,7 @@
 
 My name is Benjamin Nowak and I am a French lecturer in agronomy. My teaching and research activities focus on remote sensing, soil sciences and biogeochemical cycles (mainly carbon, nitrogen and phosphorus).
 
-## List of materials available on GitHub:
+## List of teaching materials available on GitHub:
 
 ### Geographic Information Systems
 - [Webpage](https://bjnnowak.github.io/gis/) referencing my lessons and tutorials on GIS
