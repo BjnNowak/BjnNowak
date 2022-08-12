@@ -4,7 +4,14 @@
   <img src="https://github.com/BjnNowak/gis/raw/main/fig/gis/NDVI.gif" width="200"/>
 </div>
 
-My name is **Benjamin Nowak** and I am a French lecturer in agronomy. My teaching and research activities focus on remote sensing, soil sciences and biogeochemical cycles (mainly carbon, nitrogen and phosphorus).
+
+
+<table>
+  <tr>
+    <td><img src="https://github.com/BjnNowak/gis/raw/main/fig/gis/NDVI.gif" width="200"/></td>
+     <td>My name is **Benjamin Nowak** and I am a French lecturer in agronomy. My teaching and research activities focus on remote sensing, soil sciences and biogeochemical cycles (mainly carbon, nitrogen and phosphorus)./td>
+  </tr>
+ </table>
 
 <div id="badges">
   <a href="https://www.researchgate.net/profile/Benjamin-Nowak-2">
