@@ -12,7 +12,7 @@ My name is Benjamin Nowak and I am a French lecturer in agronomy. My teaching an
 - [Making maps](https://bjnnowak.github.io/Lessons/2nd_session_R#1) with R
 
 ### Soil sciences
-[Introduction](https://bjnnowak.github.io/Lessons/pedogenesis) to soil sciences
+-[Introduction](https://bjnnowak.github.io/Lessons/pedogenesis) to soil sciences
 
-
+<br>
 You may find additional content on [my website](https://bjnnowak.netlify.app/).
