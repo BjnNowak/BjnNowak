@@ -1,5 +1,3 @@
-### Welcome!
-
 <table>
   <tr>
     <td><img src="https://github.com/BjnNowak/gis/raw/main/fig/gis/NDVI.gif" width="200"/></td>
@@ -16,16 +14,7 @@
   </tr>
  </table>
 
-<div id="badges" align="center">
-  <a href="https://www.researchgate.net/profile/Benjamin-Nowak-2">
-    <img src="https://img.shields.io/badge/ResearchGate-00ccbb?logo=ResearchGate&logoColor=white" alt="Research Gate Badge"/>
-  </a>
-   <a href="https://scholar.google.com/citations?user=YfbhYDIAAAAJ&hl=en">
-    <img src="https://img.shields.io/badge/GoogleScholar-ea4335?logo=GoogleScholar&logoColor=white" alt="Google Scholar Badge"/>
-  </a>
-</div>
-
-## List of teaching materials available on GitHub:
+## List of teaching materials available on GitHub
 
 ### Geographic Information Systems
 - [Webpage](https://bjnnowak.github.io/gis/) referencing my lessons and tutorials on GIS
