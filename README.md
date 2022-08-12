@@ -7,7 +7,7 @@
   </tr>
  </table>
 
-<div id="badges">
+<div id="badges" align="center">
   <a href="https://www.researchgate.net/profile/Benjamin-Nowak-2">
     <img src="https://img.shields.io/badge/ResearchGate-00ccbb?logo=ResearchGate&logoColor=white" alt="Research Gate Badge"/>
   </a>
