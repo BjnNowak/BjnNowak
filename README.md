@@ -1,5 +1,6 @@
 ### Welcome!
 
+
 <div id="badges">
   <a href="https://www.researchgate.net/profile/Benjamin-Nowak-2">
     <img src="https://img.shields.io/badge/ResearchGate-00ccbb?logo=ResearchGate&logoColor=white" alt="Research Gate Badge"/>
@@ -8,6 +9,7 @@
     <img src="https://img.shields.io/badge/GoogleScholar-ea4335?logo=GoogleScholar&logoColor=white" alt="Google Scholar Badge"/>
   </a>
 </div>
+
 
 My name is Benjamin Nowak and I am a French lecturer in agronomy. My teaching and research activities focus on remote sensing, soil sciences and biogeochemical cycles (mainly carbon, nitrogen and phosphorus).
 
