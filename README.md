@@ -1,7 +1,7 @@
 ### Welcome!
 
 <div id="header" align="center">
-  <img src="https://github.com/BjnNowak/gis/raw/main/fig/gis/NDVI.gif" width="100"/>
+  <img src="https://github.com/BjnNowak/gis/raw/main/fig/gis/NDVI.gif" width="200"/>
 </div>
 
 <div id="badges">
