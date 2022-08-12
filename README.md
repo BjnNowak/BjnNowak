@@ -1,7 +1,7 @@
 ### Welcome!
 
 <div id="header" align="center">
-  <span style="text-color:red;">Welcome!</span>
+  <span style="font-weight:bold;">Welcome!</span>
   <br>
   <img src="https://github.com/BjnNowak/gis/raw/main/fig/gis/NDVI.gif" width="200"/>
 </div>
