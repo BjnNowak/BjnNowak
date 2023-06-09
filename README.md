@@ -15,7 +15,14 @@
  </table>
 
 <br>
+## List of R packages
 
+### [{bertin}](https://github.com/BjnNowak/bertin)
+ Transform choropleth maps into valued points in the way of Jacques Bertin
+ 
+ ### [{frex}](https://github.com/BjnNowak/frex)
+ The goal of this package is to provide several layers of information for metropolitan France, particularly useful for analyzing agricultural systems
+ <br><br>
 ## List of teaching materials 
 
 ### Geographic Information Systems
@@ -32,10 +39,4 @@
 
 <i>You may find additional teaching content on [my website](https://bjnnowak.netlify.app/) </i>
 
-## List of R packages
 
-### [{bertin}](https://github.com/BjnNowak/bertin)
- Transform choropleth maps into valued points in the way of Jacques Bertin
- 
- ### [{frex}](https://github.com/BjnNowak/frex)
- The goal of this package is to provide several layers of information for metropolitan France, particularly useful for analyzing agricultural systems
