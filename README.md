@@ -29,7 +29,7 @@
 - [Introduction](https://bjnnowak.github.io/Lessons/pedogenesis) to soil sciences
 
 <br>
-<i>You may find additional teaching content on [my website](https://bjnnowak.netlify.app/).</i>
+<i>You may find additional teaching content on [my website](https://bjnnowak.netlify.app/) </i>
 
 ## List of R packages
 
