@@ -32,6 +32,7 @@
 ### Data analysis with R
 - [Introduction to R](https://bjnnowak.github.io/Lessons/introduction_R#1) for data science
 - [Making maps](https://bjnnowak.github.io/Lessons/2nd_session_R#1) with R
+- [Crop model with R](https://bjnnowak.github.io/Lessons/crop_model_1#/title-slide)
 
 ### Soil sciences
 - [Introduction](https://bjnnowak.github.io/Lessons/pedogenesis) to soil sciences
