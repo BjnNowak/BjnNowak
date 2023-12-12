@@ -17,8 +17,9 @@
 <br>
 
 ## Upcoming book !
-<center><img src="https://github.com/BjnNowak/book/raw/main/img/cover.jpg" width="400"/>
-Out February 7, 2024. <a href='https://www.fnac.com/a18762583/Benjamin-Nowak-Memo-visuel-d-agronomie'>Link to preorder</a></center>
+<center><img src="https://github.com/BjnNowak/book/raw/main/img/cover.jpg" width="400"/></center>
+Out February 7, 2024. <a href='https://www.fnac.com/a18762583/Benjamin-Nowak-Memo-visuel-d-agronomie'>Link to preorder</a>
+<br><br>
 
 ## List of R packages
 
