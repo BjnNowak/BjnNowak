@@ -16,6 +16,10 @@
 
 <br>
 
+## Upcoming book !
+<img src="https://github.com/BjnNowak/book/raw/main/img/cover.jpg" width="400"/>
+[Link to pre-order](https://www.fnac.com/a18762583/Benjamin-Nowak-Memo-visuel-d-agronomie)
+
 ## List of R packages
 
 ### [{bertin}](https://github.com/BjnNowak/bertin)
